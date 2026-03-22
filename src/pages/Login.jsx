@@ -2,12 +2,16 @@ import { useState } from 'react'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { Button } from '@/components/ui/button'
+import SignUp from '@/pages/SignUp'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showSignUp, setShowSignUp] = useState(false)
+
+  if (showSignUp) return <SignUp onBack={() => setShowSignUp(false)} />
 
   async function handleLogin(e) {
     e.preventDefault()
@@ -61,6 +65,13 @@ export default function Login() {
             {loading ? 'Signing in...' : 'Sign In'}
           </Button>
         </form>
+
+        <p className="text-center text-sm text-muted-foreground mt-4">
+          New shop?{' '}
+          <button onClick={() => setShowSignUp(true)} className="text-foreground font-medium hover:underline">
+            Create Account
+          </button>
+        </p>
       </div>
     </div>
   )

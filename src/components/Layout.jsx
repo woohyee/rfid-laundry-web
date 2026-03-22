@@ -27,7 +27,9 @@ export default function Layout() {
       <header className="border-border bg-card px-6 sm:px-10 py-4">
         <div className="flex items-center gap-4">
           <img src={logo} alt="RFID Laundry" className="h-20 w-auto" />
-          <h1 className="text-4xl font-semibold">RFID Laundry</h1>
+          <h1 className="text-4xl font-semibold">
+            RFID Laundry{shop?.name ? ` — ${shop.name}` : ''}
+          </h1>
         </div>
       </header>
 
@@ -50,7 +52,6 @@ export default function Layout() {
             ))}
           </div>
           <div className="flex items-center gap-3">
-            {shop && <span className="hidden sm:inline text-sm text-muted-foreground">{shop.name}</span>}
             <button
               onClick={handleSignOut}
               className="text-2xl font-medium text-red-500 hover:text-red-700 transition-colors"
