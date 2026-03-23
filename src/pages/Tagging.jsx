@@ -246,7 +246,7 @@ export default function Tagging() {
           {dcTags.length > 0 && (
             <div className="mt-3 space-y-1">
               {dcTags.map((tag, i) => (
-                <div key={i} className="flex items-center justify-between bg-blue-50 px-3 py-1 rounded text-sm font-mono text-blue-800">
+                <div key={i} className="flex items-center justify-between bg-[#FEF3E2] px-3 py-1 rounded text-sm font-mono text-[#92400E]">
                   <span>{i + 1}. {tag}</span>
                   {step === STEPS.DC_SCAN && (
                     <button onClick={() => setDcTags(prev => prev.filter(t => t !== tag))} className="text-red-400 hover:text-red-600 ml-2 font-bold">✕</button>

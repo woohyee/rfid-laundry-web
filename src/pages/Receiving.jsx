@@ -198,7 +198,7 @@ export default function Receiving() {
                 const totalShirt = invoice.shirtCount || 0
                 const isDone = done || (scannedDc >= totalDc && scannedShirt >= totalShirt)
                 return (
-                  <div key={invoice.id} className={`px-3 py-2 rounded-lg text-base ${isDone ? 'bg-green-100 text-green-800' : 'bg-blue-50 text-blue-800'}`}>
+                  <div key={invoice.id} className={`px-3 py-2.5 rounded-lg text-base ${isDone ? 'bg-green-100 text-green-800' : 'bg-[#FEF3E2] text-[#92400E]'}`}>
                     <div className="font-bold font-mono text-lg">{invoice.invoiceNo}</div>
                     {totalDc > 0 && <div className="font-medium">D/C: {scannedDc} / {totalDc}</div>}
                     {totalShirt > 0 && <div className="font-medium">Shirts: {scannedShirt} / {totalShirt}</div>}
@@ -212,7 +212,7 @@ export default function Receiving() {
           {sessionCount > 0 && (
             <button
               onClick={handleCompleteSession}
-              className="mt-4 w-full bg-gray-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors"
+              className="mt-4 w-full bg-[#18181B] text-white font-bold py-2 px-4 rounded-lg hover:bg-[#27272A] transition-colors"
             >
               Complete Session
             </button>

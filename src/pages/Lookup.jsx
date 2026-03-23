@@ -165,7 +165,7 @@ function calcStats() {
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
-                className={`px-4 py-1.5 rounded font-semibold text-sm capitalize ${statusFilter === s ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                className={`px-4 py-1.5 rounded-lg font-semibold text-sm capitalize ${statusFilter === s ? 'bg-[#18181B] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
               >
                 {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
               </button>
@@ -266,7 +266,7 @@ function calcStats() {
               className="border border-gray-300 rounded px-3 py-2 text-sm" />
           </div>
           <button onClick={calcStats}
-            className="bg-gray-900 text-white font-bold px-5 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+            className="bg-[#E07B0F] text-white font-bold px-5 py-2 rounded-lg hover:bg-[#C46A09] transition-colors">
             Get Stats
           </button>
         </div>
