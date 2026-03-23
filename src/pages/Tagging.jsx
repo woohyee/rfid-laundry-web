@@ -159,9 +159,9 @@ export default function Tagging() {
   const shirtCountNum = parseInt(shirtCount, 10) || 0
   const activeCard = 'rounded-xl p-4 bg-white shadow-md border-2 border-blue-400'
   const inactiveCard = 'rounded-xl p-4 bg-gray-50 border border-gray-200'
-  const activeInput = 'w-full border-2 border-blue-500 rounded-lg px-4 py-3 text-2xl font-mono focus:outline-none focus:border-blue-700 bg-white'
-  const disabledInput = 'w-full border-2 border-gray-200 rounded-lg px-4 py-3 text-2xl font-mono bg-gray-50 text-gray-400 cursor-not-allowed'
-  const labelClass = 'text-sm font-semibold text-gray-600 uppercase tracking-wide'
+  const activeInput = 'w-full border-2 border-blue-500 rounded-lg px-4 py-3 text-2xl font-mono font-bold text-gray-900 focus:outline-none focus:border-blue-700 bg-white'
+  const disabledInput = 'w-full border-2 border-gray-200 rounded-lg px-4 py-3 text-2xl font-mono font-bold bg-gray-50 text-gray-700 cursor-not-allowed'
+  const labelClass = 'text-sm font-bold text-gray-700 uppercase tracking-wide'
 
   const hasData = invoiceNo || step !== STEPS.INVOICE
 
