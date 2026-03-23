@@ -34,7 +34,7 @@ export default function TagScanner({ onScan, placeholder = "Scan RFID tag...", a
       onKeyDown={handleKeyDown}
       placeholder={placeholder}
       disabled={disabled}
-      className="w-full border-2 border-blue-500 rounded-lg px-4 py-3 text-2xl font-mono focus:outline-none focus:border-blue-700 disabled:opacity-40 text-gray-800"
+      className="w-full border-2 border-[#E07B0F] rounded-lg px-4 py-3 text-2xl font-mono font-bold text-gray-900 focus:outline-none focus:border-[#C46A09] disabled:opacity-40"
     />
   )
 }

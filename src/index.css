@@ -2,22 +2,27 @@
 @import "tw-animate-css";
 
 @theme {
-  --color-background: oklch(1 0 0);
-  --color-foreground: oklch(0.145 0 0);
-  --color-card: oklch(1 0 0);
-  --color-card-foreground: oklch(0.145 0 0);
-  --color-primary: oklch(0.205 0 0);
-  --color-primary-foreground: oklch(0.985 0 0);
-  --color-secondary: oklch(0.97 0 0);
-  --color-secondary-foreground: oklch(0.205 0 0);
-  --color-muted: oklch(0.97 0 0);
-  --color-muted-foreground: oklch(0.556 0 0);
-  --color-accent: oklch(0.97 0 0);
-  --color-accent-foreground: oklch(0.205 0 0);
-  --color-destructive: oklch(0.577 0.245 27.325);
-  --color-border: oklch(0.922 0 0);
-  --color-input: oklch(0.922 0 0);
-  --color-ring: oklch(0.708 0 0);
+  /* Clean Ops — Slate dark header + Amber accent */
+  --color-background: #F7F6F3;
+  --color-foreground: #111111;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #111111;
+  --color-header: #18181B;
+  --color-header-foreground: #FAFAFA;
+  --color-primary: #E07B0F;
+  --color-primary-hover: #C46A09;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #F4F4F5;
+  --color-secondary-foreground: #111111;
+  --color-muted: #F4F4F5;
+  --color-muted-foreground: #71717A;
+  --color-accent: #E07B0F;
+  --color-accent-foreground: #FFFFFF;
+  --color-accent-light: #FEF3E2;
+  --color-destructive: #DC2626;
+  --color-border: #E4E2DC;
+  --color-input: #E4E2DC;
+  --color-ring: #E07B0F;
   --radius: 0.625rem;
 }
 

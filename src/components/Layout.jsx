@@ -24,41 +24,44 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* 상단 헤더 */}
-      <header className="border-border bg-card px-6 sm:px-10 py-4">
+      <header className="px-6 sm:px-10 py-4" style={{ background: '#18181B' }}>
         <div className="flex items-center gap-4">
-          <img src={logo} alt="RFID Laundry" className="h-20 w-auto" />
-          <h1 className="text-4xl font-semibold">
-            RFID Laundry{shop?.name ? ` — ${shop.name}` : ''}
-          </h1>
+          <img src={logo} alt="RFID Laundry" className="h-16 w-auto" />
+          <div>
+            <h1 className="text-3xl font-bold" style={{ color: '#FAFAFA', letterSpacing: '-0.02em' }}>
+              RFID Laundry
+            </h1>
+            {shop?.name && (
+              <p className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.45)' }}>{shop.name}</p>
+            )}
+          </div>
         </div>
       </header>
 
       {/* 탭 네비게이션 + Sign Out */}
-      <nav className="border-b border-t border-border bg-card px-6 sm:px-10">
-        <div className="flex items-center gap-10">
+      <nav className="px-6 sm:px-10" style={{ background: '#18181B', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="flex items-center justify-between">
           <div className="flex gap-0">
             {TABS.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-4 text-2xl font-medium border-b-2 transition-colors ${
+                className={`px-5 py-3.5 text-base font-medium border-b-2 transition-colors ${
                   activeTab === tab.id
-                    ? 'border-foreground text-foreground'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                    ? 'border-[#E07B0F] text-[#E07B0F]'
+                    : 'border-transparent text-white/40 hover:text-white/75'
                 }`}
               >
                 {tab.label}
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleSignOut}
-              className="text-2xl font-medium text-red-500 hover:text-red-700 transition-colors"
-            >
-              Sign Out
-            </button>
-          </div>
+          <button
+            onClick={handleSignOut}
+            className="text-sm font-semibold px-3 py-2 rounded-lg transition-colors text-white/35 hover:text-red-300 hover:bg-red-500/10"
+          >
+            Sign Out
+          </button>
         </div>
       </nav>
 
