@@ -235,13 +235,7 @@ function calcStats() {
                             View
                           </button>
                         )}
-                        <button
-                          onClick={() => { setEditInvoice(inv); setEditValue(inv.invoiceNo) }}
-                          className="text-xs text-orange-500 hover:text-orange-700 px-2 py-1 rounded hover:bg-orange-50 font-semibold"
-                        >
-                          Edit
-                        </button>
-                        <button
+<button
                           onClick={() => deleteInvoice(inv.id, inv.invoiceNo)}
                           className="text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50 font-semibold"
                         >
