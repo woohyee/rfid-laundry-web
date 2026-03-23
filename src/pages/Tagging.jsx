@@ -184,15 +184,7 @@ export default function Tagging() {
 
       {/* 인보이스 번호 */}
       <div className={step === STEPS.INVOICE ? activeCard : inactiveCard}>
-        <div className="flex justify-between items-center mb-2">
-          <div className={labelClass}>Invoice #</div>
-          {step !== STEPS.INVOICE && invoiceNo && (
-            <button
-              onClick={() => setStep(STEPS.INVOICE)}
-              className="text-xs font-semibold text-blue-500 hover:text-blue-700"
-            >✎ Edit</button>
-          )}
-        </div>
+        <div className={`${labelClass} mb-2`}>Invoice #</div>
         <div className="relative">
           <input
             ref={invoiceRef}
