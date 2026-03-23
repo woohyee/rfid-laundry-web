@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
   collection, query, where, getDocs,
-  doc, deleteDoc
+  doc, deleteDoc, updateDoc
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
@@ -37,6 +37,8 @@ export default function Lookup() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [viewInvoice, setViewInvoice] = useState(null)
+  const [editInvoice, setEditInvoice] = useState(null) // { id, invoiceNo }
+  const [editValue, setEditValue] = useState('')
 
   useEffect(() => {
     fetchInvoices()
@@ -86,6 +88,19 @@ export default function Lookup() {
     if (!window.confirm(`Delete invoice #${invoiceNo}?`)) return
     try {
       await deleteDoc(doc(db, 'invoices', id))
+      fetchInvoices()
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
+  async function saveEditInvoice() {
+    const newNo = editValue.trim()
+    if (!newNo) return
+    try {
+      await updateDoc(doc(db, 'invoices', editInvoice.id), { invoiceNo: newNo })
+      setEditInvoice(null)
+      setEditValue('')
       fetchInvoices()
     } catch (e) {
       setError(e.message)
@@ -221,6 +236,12 @@ function calcStats() {
                           </button>
                         )}
                         <button
+                          onClick={() => { setEditInvoice(inv); setEditValue(inv.invoiceNo) }}
+                          className="text-xs text-orange-500 hover:text-orange-700 px-2 py-1 rounded hover:bg-orange-50 font-semibold"
+                        >
+                          Edit
+                        </button>
+                        <button
                           onClick={() => deleteInvoice(inv.id, inv.invoiceNo)}
                           className="text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50 font-semibold"
                         >
@@ -281,6 +302,39 @@ function calcStats() {
           </div>
         )}
       </div>
+
+      {/* 인보이스 번호 수정 모달 */}
+      {editInvoice && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full">
+            <h2 className="text-xl font-bold mb-1">Edit Invoice #</h2>
+            <p className="text-sm text-gray-500 mb-4">기존: <span className="font-mono font-bold text-gray-700">{editInvoice.invoiceNo}</span></p>
+            <input
+              type="text"
+              value={editValue}
+              onChange={e => setEditValue(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && saveEditInvoice()}
+              autoFocus
+              className="w-full border-2 border-blue-500 rounded-lg px-4 py-3 text-2xl font-mono focus:outline-none mb-4"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={saveEditInvoice}
+                disabled={!editValue.trim()}
+                className="flex-1 bg-gray-900 text-white font-bold py-2 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-40"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => { setEditInvoice(null); setEditValue('') }}
+                className="flex-1 bg-gray-100 text-gray-700 font-bold py-2 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 태그 조회 모달 */}
       {viewInvoice && (
