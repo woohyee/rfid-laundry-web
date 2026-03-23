@@ -58,7 +58,7 @@ export default function Layout() {
           </div>
           <button
             onClick={handleSignOut}
-            className="text-lg font-bold px-4 py-2 rounded-lg transition-colors border border-white/20 text-white/70 hover:text-red-300 hover:border-red-400/40 hover:bg-red-500/10"
+            className="text-lg font-bold px-4 py-2 rounded-lg transition-colors border border-red-500 text-red-400 hover:bg-red-500 hover:text-white"
           >
             Sign Out
           </button>
