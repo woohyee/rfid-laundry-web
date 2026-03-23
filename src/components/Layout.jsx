@@ -40,7 +40,7 @@ export default function Layout() {
 
       {/* 탭 네비게이션 + Sign Out */}
       <nav className="px-6 sm:px-10" style={{ background: '#18181B', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
           <div className="flex gap-0">
             {TABS.map(tab => (
               <button
