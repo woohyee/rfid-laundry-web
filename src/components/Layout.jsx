@@ -46,10 +46,10 @@ export default function Layout() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-4 text-xl font-semibold border-b-2 transition-colors ${
+                className={`px-6 py-4 text-2xl font-bold border-b-2 transition-colors ${
                   activeTab === tab.id
                     ? 'border-[#E07B0F] text-[#E07B0F]'
-                    : 'border-transparent text-white/50 hover:text-white/80'
+                    : 'border-transparent text-white/55 hover:text-white/85'
                 }`}
               >
                 {tab.label}
@@ -58,7 +58,7 @@ export default function Layout() {
           </div>
           <button
             onClick={handleSignOut}
-            className="text-sm font-semibold px-3 py-2 rounded-lg transition-colors text-white/35 hover:text-red-300 hover:bg-red-500/10"
+            className="text-lg font-bold px-4 py-2 rounded-lg transition-colors border border-white/20 text-white/70 hover:text-red-300 hover:border-red-400/40 hover:bg-red-500/10"
           >
             Sign Out
           </button>
