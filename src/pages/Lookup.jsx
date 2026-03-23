@@ -361,7 +361,7 @@ function calcStats() {
                       return (
                         <div key={tag} className={`flex items-center justify-between px-3 py-1.5 rounded text-sm font-mono ${received ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
                           <span>{i + 1}. {tag}</span>
-                          <span className="text-xs font-semibold ml-2">{received ? '✓ received' : '✗ missing'}</span>
+                          <span className="text-xs font-semibold ml-2">{received ? '✓ received' : '⏳ pending'}</span>
                         </div>
                       )
                     })}
@@ -381,7 +381,7 @@ function calcStats() {
                       return (
                         <div key={tag} className={`flex items-center justify-between px-3 py-1.5 rounded text-sm font-mono ${received ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
                           <span>{i + 1}. {tag}</span>
-                          <span className="text-xs font-semibold ml-2">{received ? '✓ received' : '✗ missing'}</span>
+                          <span className="text-xs font-semibold ml-2">{received ? '✓ received' : '⏳ pending'}</span>
                         </div>
                       )
                     })}
