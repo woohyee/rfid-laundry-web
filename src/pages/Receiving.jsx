@@ -124,7 +124,7 @@ export default function Receiving() {
         {/* 스캔 영역 */}
         <div className="flex-1 space-y-4">
           <div className="bg-white rounded-xl shadow-md p-5">
-            <div className="text-sm font-semibold text-gray-500 mb-3">Scan RFID Tag</div>
+            <div className="text-base font-bold text-gray-700 mb-3">Scan RFID Tag</div>
             <TagScanner onScan={handleScan} placeholder="Scan RFID tag..." autoFocus={true} />
           </div>
 
@@ -186,7 +186,7 @@ export default function Receiving() {
 
         {/* 세션 인보이스 목록 */}
         <div className="w-full sm:w-56 bg-white rounded-xl shadow-md p-4 self-start">
-          <div className="text-sm font-semibold text-gray-500 mb-3">
+          <div className="text-base font-bold text-gray-700 mb-3">
             Session ({sessionCount})
           </div>
           {Object.keys(sessionScanned).length === 0 ? (
@@ -198,11 +198,11 @@ export default function Receiving() {
                 const totalShirt = invoice.shirtCount || 0
                 const isDone = done || (scannedDc >= totalDc && scannedShirt >= totalShirt)
                 return (
-                  <div key={invoice.id} className={`px-3 py-2 rounded-lg text-sm ${isDone ? 'bg-green-100 text-green-800' : 'bg-blue-50 text-blue-800'}`}>
-                    <div className="font-bold font-mono">{invoice.invoiceNo}</div>
-                    {totalDc > 0 && <div>D/C: {scannedDc} / {totalDc}</div>}
-                    {totalShirt > 0 && <div>Shirts: {scannedShirt} / {totalShirt}</div>}
-                    {isDone && <div className="text-green-600 font-semibold">✓ Done</div>}
+                  <div key={invoice.id} className={`px-3 py-2 rounded-lg text-base ${isDone ? 'bg-green-100 text-green-800' : 'bg-blue-50 text-blue-800'}`}>
+                    <div className="font-bold font-mono text-lg">{invoice.invoiceNo}</div>
+                    {totalDc > 0 && <div className="font-medium">D/C: {scannedDc} / {totalDc}</div>}
+                    {totalShirt > 0 && <div className="font-medium">Shirts: {scannedShirt} / {totalShirt}</div>}
+                    {isDone && <div className="text-green-700 font-bold">✓ Done</div>}
                   </div>
                 )
               })}

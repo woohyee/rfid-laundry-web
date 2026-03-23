@@ -14,7 +14,7 @@ function StatusBadge({ status }) {
     missing: 'bg-red-100 text-red-800',
   }
   return (
-    <span className={`px-2 py-1 rounded text-xs font-semibold ${styles[status] || 'bg-gray-100 text-gray-800'}`}>
+    <span className={`px-2 py-1 rounded text-sm font-bold ${styles[status] || 'bg-gray-100 text-gray-800'}`}>
       {status}
     </span>
   )
@@ -176,9 +176,9 @@ function calcStats() {
           <div className="text-gray-400 py-8 text-center">No invoices found.</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-base">
               <thead>
-                <tr className="border-b-2 border-gray-200 text-left text-gray-500">
+                <tr className="border-b-2 border-gray-200 text-left text-gray-600 font-bold">
                   <th className="py-2 px-3">Invoice #</th>
                   <th className="py-2 px-3 hidden sm:table-cell">Date</th>
                   <th className="py-2 px-3 text-center hidden sm:table-cell">D/C</th>
@@ -260,23 +260,23 @@ function calcStats() {
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <div className="bg-blue-50 rounded-lg p-4 text-center">
               <div className="text-3xl font-extrabold text-blue-700">{stats.invoiceCount}</div>
-              <div className="text-xs text-gray-500 mt-1">Invoices</div>
+              <div className="text-sm font-semibold text-gray-600 mt-1">Invoices</div>
             </div>
             <div className="bg-purple-50 rounded-lg p-4 text-center">
               <div className="text-3xl font-extrabold text-purple-700">{stats.dcCount}</div>
-              <div className="text-xs text-gray-500 mt-1">D/C</div>
+              <div className="text-sm font-semibold text-gray-600 mt-1">D/C</div>
             </div>
             <div className="bg-indigo-50 rounded-lg p-4 text-center">
               <div className="text-3xl font-extrabold text-indigo-700">{stats.shirtCount}</div>
-              <div className="text-xs text-gray-500 mt-1">Shirts</div>
+              <div className="text-sm font-semibold text-gray-600 mt-1">Shirts</div>
             </div>
             <div className="bg-green-50 rounded-lg p-4 text-center">
               <div className="text-3xl font-extrabold text-green-700">{stats.receivedCount}</div>
-              <div className="text-xs text-gray-500 mt-1">Received</div>
+              <div className="text-sm font-semibold text-gray-600 mt-1">Received</div>
             </div>
             <div className="bg-yellow-50 rounded-lg p-4 text-center">
               <div className="text-3xl font-extrabold text-yellow-700">{stats.pendingCount}</div>
-              <div className="text-xs text-gray-500 mt-1">Pending</div>
+              <div className="text-sm font-semibold text-gray-600 mt-1">Pending</div>
             </div>
           </div>
         )}

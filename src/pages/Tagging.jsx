@@ -161,32 +161,55 @@ export default function Tagging() {
   const inactiveCard = 'rounded-xl p-4 bg-gray-50 border border-gray-200'
   const activeInput = 'w-full border-2 border-blue-500 rounded-lg px-4 py-3 text-2xl font-mono focus:outline-none focus:border-blue-700 bg-white'
   const disabledInput = 'w-full border-2 border-gray-200 rounded-lg px-4 py-3 text-2xl font-mono bg-gray-50 text-gray-400 cursor-not-allowed'
+  const labelClass = 'text-sm font-semibold text-gray-600 uppercase tracking-wide'
+
+  const hasData = invoiceNo || step !== STEPS.INVOICE
 
   return (
     <div className="max-w-lg mx-auto space-y-3 relative">
+
+      {/* Reset 버튼 — 데이터 있을 때 항상 표시 */}
+      {hasData && (
+        <div className="flex justify-end">
+          <button
+            onClick={resetAll}
+            className="flex items-center gap-1 text-sm font-semibold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            ✕ Reset All
+          </button>
+        </div>
+      )}
 
       <ErrorBanner message={error} onClose={() => setError(null)} />
 
       {/* 인보이스 번호 */}
       <div className={step === STEPS.INVOICE ? activeCard : inactiveCard}>
-        <div className="text-xs text-gray-400 mb-1 uppercase tracking-wide">Invoice #</div>
-        <input
-          ref={invoiceRef}
-          type="text"
-          value={invoiceNo}
-          onChange={e => setInvoiceNo(e.target.value)}
-          onKeyDown={handleInvoiceKey}
-          placeholder="Invoice number..."
-          disabled={step !== STEPS.INVOICE}
-          className={step === STEPS.INVOICE ? activeInput : disabledInput}
-        />
+        <div className={`${labelClass} mb-2`}>Invoice #</div>
+        <div className="relative">
+          <input
+            ref={invoiceRef}
+            type="text"
+            value={invoiceNo}
+            onChange={e => setInvoiceNo(e.target.value)}
+            onKeyDown={handleInvoiceKey}
+            placeholder="Invoice number..."
+            disabled={step !== STEPS.INVOICE}
+            className={step === STEPS.INVOICE ? activeInput + ' pr-10' : disabledInput}
+          />
+          {step === STEPS.INVOICE && invoiceNo && (
+            <button
+              onClick={() => { setInvoiceNo(''); invoiceRef.current?.focus() }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 text-xl font-bold"
+            >✕</button>
+          )}
+        </div>
       </div>
 
       {/* D/C 수량 */}
       {step >= STEPS.DC_COUNT && (
         <div className={step === STEPS.DC_COUNT ? activeCard : inactiveCard}>
-          <div className="flex justify-between items-center mb-1">
-            <div className="text-xs text-gray-400 uppercase tracking-wide">D/C Count</div>
+          <div className="flex justify-between items-center mb-2">
+            <div className={labelClass}>D/C Count</div>
             {step === STEPS.DC_COUNT && (
               <button onClick={goBack} className="text-xs text-gray-400 hover:text-gray-600">← Back</button>
             )}
@@ -209,7 +232,7 @@ export default function Tagging() {
       {(step === STEPS.DC_SCAN || (step > STEPS.DC_SCAN && dcTags.length > 0)) && (
         <div className={step === STEPS.DC_SCAN ? activeCard : inactiveCard}>
           <div className="flex justify-between items-center mb-2">
-            <div className="text-xs text-gray-400 uppercase tracking-wide">Scan D/C Tags</div>
+            <div className={labelClass}>Scan D/C Tags</div>
             {step === STEPS.DC_SCAN && (
               <button onClick={goBack} className="text-xs text-gray-400 hover:text-gray-600">← Back</button>
             )}
@@ -238,8 +261,8 @@ export default function Tagging() {
       {/* 셔츠 수량 */}
       {(step === STEPS.SHIRT_COUNT || step === STEPS.SHIRT_SCAN || shirtCount !== '') && (
         <div className={step === STEPS.SHIRT_COUNT ? activeCard : inactiveCard}>
-          <div className="flex justify-between items-center mb-1">
-            <div className="text-xs text-gray-400 uppercase tracking-wide">Shirt Count</div>
+          <div className="flex justify-between items-center mb-2">
+            <div className={labelClass}>Shirt Count</div>
             {step === STEPS.SHIRT_COUNT && (
               <button onClick={goBack} className="text-xs text-gray-400 hover:text-gray-600">← Back</button>
             )}
@@ -262,7 +285,7 @@ export default function Tagging() {
       {(step === STEPS.SHIRT_SCAN || shirtTags.length > 0) && (
         <div className={step === STEPS.SHIRT_SCAN ? activeCard : inactiveCard}>
           <div className="flex justify-between items-center mb-2">
-            <div className="text-xs text-gray-400 uppercase tracking-wide">Scan Shirt Tags</div>
+            <div className={labelClass}>Scan Shirt Tags</div>
             {step === STEPS.SHIRT_SCAN && (
               <button onClick={goBack} className="text-xs text-gray-400 hover:text-gray-600">← Back</button>
             )}
