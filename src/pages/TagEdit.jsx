@@ -14,7 +14,10 @@ export default function TagEdit() {
   const [error, setError] = useState(null)
   const [toast, setToast] = useState(null)
   const [scannedTag, setScannedTag] = useState(null) // { tagId, type: 'shirt'|'dc' }
+  const [editingDay, setEditingDay] = useState(false)
   const searchRef = useRef(null)
+
+  const DAY_COLORS = { MON:'#3B82F6', TUE:'#8B5CF6', WED:'#10B981', THU:'#F59E0B', FRI:'#EF4444', SAT:'#EC4899' }
 
   async function handleSearch(e) {
     if (e.key !== 'Enter' && e.type !== 'click') return
@@ -23,6 +26,7 @@ export default function TagEdit() {
     setError(null)
     setInvoice(null)
     setScannedTag(null)
+    setEditingDay(false)
     setLoading(true)
     try {
       const q = query(
@@ -128,6 +132,11 @@ export default function TagEdit() {
     }
   }
 
+  async function handleDayChange(day) {
+    setEditingDay(false)
+    await applyChange({ dueDay: day })
+  }
+
   function showToast(msg) {
     setToast(msg)
     setTimeout(() => setToast(null), 2000)
@@ -187,9 +196,21 @@ export default function TagEdit() {
                 🗑 Delete Invoice
               </button>
             </div>
-            <div className="flex gap-6 text-sm font-semibold text-gray-600">
+            <div className="flex items-center gap-6 text-sm font-semibold text-gray-600 flex-wrap">
               <span>Shirts: <span className="text-green-700 font-extrabold">{(invoice.shirtTags || []).length}</span> / {invoice.shirtCount}</span>
               <span>D/C: <span className="text-[#E07B0F] font-extrabold">{(invoice.dcTags || []).length}</span> / {invoice.dcCount}</span>
+              <button
+                onClick={() => setEditingDay(true)}
+                className="ml-auto flex items-center gap-1 px-3 py-1 rounded-lg border border-[#E4E2DC] hover:border-[#E07B0F] transition-colors"
+              >
+                <span className="text-xs text-gray-400 uppercase tracking-wide">Due</span>
+                <span
+                  className="text-base font-extrabold font-mono ml-1"
+                  style={{ color: invoice.dueDay ? (DAY_COLORS[invoice.dueDay] || '#6B7280') : '#9CA3AF' }}
+                >
+                  {invoice.dueDay || '—'}
+                </span>
+              </button>
             </div>
 
             {/* 태그 목록 */}
@@ -254,6 +275,33 @@ export default function TagEdit() {
       )}
 
     </div>
+
+    {/* 요일 선택 모달 */}
+    {editingDay && (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-bold text-gray-800">Select Due Day</h2>
+            <button onClick={() => setEditingDay(false)} className="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {['MON','TUE','WED','THU','FRI','SAT'].map(day => (
+              <button
+                key={day}
+                onClick={() => handleDayChange(day)}
+                className={`flex-1 min-w-[60px] py-3 rounded-lg text-xl font-bold border-2 transition-colors ${
+                  invoice.dueDay === day
+                    ? 'border-[#E07B0F] text-[#E07B0F]'
+                    : 'border-[#E4E2DC] hover:border-[#E07B0F] hover:text-[#E07B0F]'
+                }`}
+              >
+                {day}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    )}
 
     {/* 태그 액션 모달 — 컨테이너 밖에서 렌더링 */}
     {scannedTag && (
