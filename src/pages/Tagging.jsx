@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { collection, addDoc, getDocs, query, where, serverTimestamp, doc, updateDoc } from 'firebase/firestore'
+import { collection, addDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import TagScanner from '@/components/TagScanner'
@@ -37,7 +37,6 @@ export default function Tagging() {
   const [dueDay, setDueDay] = useState('')
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
-  const [dayFillMode, setDayFillMode] = useState(null) // { invoiceId } — 기존 인보이스 요일 입력 모드
 
   const invoiceRef = useRef(null)
   const shirtCountRef = useRef(null)
@@ -77,14 +76,6 @@ export default function Tagging() {
       )
       const snap = await getDocs(q)
       if (!snap.empty) {
-        const existing = snap.docs[0]
-        const existingData = existing.data()
-        if (!existingData.dueDay) {
-          // 요일만 없는 기존 인보이스 → 요일 입력 모드
-          setError(null)
-          setDayFillMode({ invoiceId: existing.id })
-          return
-        }
         setError(`Invoice #${invoiceNo.trim()} already exists. Please check the invoice number.`)
         return
       }
@@ -98,22 +89,6 @@ export default function Tagging() {
   function handleDueDaySelect(day) {
     setDueDay(day)
     setStep(STEPS.SHIRT_COUNT)
-  }
-
-  async function handleDayFillSelect(day) {
-    if (!dayFillMode?.invoiceId) return
-    setSaving(true)
-    try {
-      await updateDoc(doc(db, 'invoices', dayFillMode.invoiceId), { dueDay: day })
-      showToast(`#${invoiceNo.trim()} → ${day}`)
-      setDayFillMode(null)
-      setInvoiceNo('')
-      invoiceRef.current?.focus()
-    } catch (e) {
-      setError('Save failed: ' + e.message)
-    } finally {
-      setSaving(false)
-    }
   }
 
   function handleShirtCountKey(e) {
@@ -242,7 +217,6 @@ export default function Tagging() {
     setDcTags([])
     setEditingTag(null)
     setError(null)
-    setDayFillMode(null)
     setStep(STEPS.INVOICE)
   }
 
@@ -334,27 +308,8 @@ export default function Tagging() {
         </div>
       </div>
 
-      {/* 기존 인보이스 요일 채우기 모드 */}
-      {dayFillMode && (
-        <div className={activeCard}>
-          <div className={`${labelClass} mb-3`}>Select Due Day for #{invoiceNo}</div>
-          <div className="flex gap-2 flex-wrap">
-            {['MON','TUE','WED','THU','FRI','SAT'].map(day => (
-              <button
-                key={day}
-                onClick={() => handleDayFillSelect(day)}
-                disabled={saving}
-                className="flex-1 min-w-[60px] py-3 rounded-lg text-xl font-bold border-2 border-[#E4E2DC] hover:border-[#E07B0F] hover:text-[#E07B0F] transition-colors disabled:opacity-50"
-              >
-                {day}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* 요일 선택 */}
-      {!dayFillMode && stepGte(step, STEPS.DUE_DAY) && (
+      {stepGte(step, STEPS.DUE_DAY) && (
         <div className={step === STEPS.DUE_DAY ? activeCard : inactiveCard}>
           <div className="flex justify-between items-center mb-3">
             <div className={labelClass}>Due Day</div>
