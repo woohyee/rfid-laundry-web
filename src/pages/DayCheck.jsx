@@ -56,6 +56,7 @@ export default function DayCheck() {
     try {
       await updateDoc(doc(db, 'invoices', result.invoiceId), { dueDay: day })
       setResult(prev => ({ ...prev, dueDay: day }))
+      setTimeout(() => setResult(null), 1000)
     } catch (e) {
       setError('Save failed: ' + e.message)
     } finally {
@@ -83,7 +84,7 @@ export default function DayCheck() {
 
           {result.dueDay ? (
             <div
-              className="text-8xl font-extrabold font-mono mt-2"
+              className="text-4xl font-extrabold font-mono mt-2"
               style={{ color: dayColor }}
             >
               {result.dueDay}
