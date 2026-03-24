@@ -183,7 +183,7 @@ export default function TagEdit() {
           <div className={inactiveCard}>
             <div className="flex items-center justify-between mb-3">
               <div>
-                <span className="text-xl font-extrabold font-mono text-gray-900">#{invoice.invoiceNo}</span>
+                <span className="text-xl font-extrabold font-mono text-gray-900">{invoice.invoiceNo}</span>
                 <span className={`ml-3 px-2 py-0.5 rounded text-sm font-bold ${invoice.status === 'received' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
                   {invoice.status}
                 </span>
