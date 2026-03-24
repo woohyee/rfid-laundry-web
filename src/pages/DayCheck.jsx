@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { collection, query, where, getDocs } from 'firebase/firestore'
+import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import TagScanner from '@/components/TagScanner'
@@ -16,11 +16,13 @@ const DAY_COLORS = {
 
 export default function DayCheck() {
   const { user } = useAuth()
-  const [result, setResult] = useState(null) // { invoiceNo, dueDay }
+  const [result, setResult] = useState(null) // { invoiceNo, dueDay, invoiceId }
   const [error, setError] = useState(null)
+  const [saving, setSaving] = useState(false)
 
   async function handleScan(tagId) {
     setError(null)
+    setResult(null)
     try {
       const q = query(
         collection(db, 'invoices'),
@@ -32,14 +34,13 @@ export default function DayCheck() {
       for (const docSnap of snapshot.docs) {
         const data = docSnap.data()
         if (data.shirtTags?.includes(tagId) || data.dcTags?.includes(tagId)) {
-          found = { invoiceNo: data.invoiceNo, dueDay: data.dueDay || '—' }
+          found = { invoiceNo: data.invoiceNo, dueDay: data.dueDay || null, invoiceId: docSnap.id }
           break
         }
       }
 
       if (!found) {
         setError(`Tag ${tagId} not found.`)
-        setResult(null)
         return
       }
 
@@ -49,7 +50,20 @@ export default function DayCheck() {
     }
   }
 
-  const dayColor = result ? (DAY_COLORS[result.dueDay] || '#6B7280') : '#E07B0F'
+  async function handleDaySelect(day) {
+    if (!result?.invoiceId) return
+    setSaving(true)
+    try {
+      await updateDoc(doc(db, 'invoices', result.invoiceId), { dueDay: day })
+      setResult(prev => ({ ...prev, dueDay: day }))
+    } catch (e) {
+      setError('Save failed: ' + e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const dayColor = result?.dueDay ? (DAY_COLORS[result.dueDay] || '#6B7280') : '#E07B0F'
 
   return (
     <div className="max-w-lg mx-auto space-y-4">
@@ -66,12 +80,33 @@ export default function DayCheck() {
           <div className="text-5xl font-extrabold font-mono text-gray-900 tracking-tight">
             {result.invoiceNo}
           </div>
-          <div
-            className="text-8xl font-extrabold font-mono mt-2"
-            style={{ color: dayColor }}
-          >
-            {result.dueDay}
-          </div>
+
+          {result.dueDay ? (
+            <div
+              className="text-8xl font-extrabold font-mono mt-2"
+              style={{ color: dayColor }}
+            >
+              {result.dueDay}
+            </div>
+          ) : (
+            <div className="mt-4">
+              <div className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">
+                Select Due Day
+              </div>
+              <div className="flex gap-2 flex-wrap justify-center">
+                {['MON','TUE','WED','THU','FRI','SAT'].map(day => (
+                  <button
+                    key={day}
+                    onClick={() => handleDaySelect(day)}
+                    disabled={saving}
+                    className="flex-1 min-w-[60px] py-3 rounded-lg text-xl font-bold border-2 border-[#E4E2DC] hover:border-[#E07B0F] hover:text-[#E07B0F] transition-colors disabled:opacity-50"
+                  >
+                    {day}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
