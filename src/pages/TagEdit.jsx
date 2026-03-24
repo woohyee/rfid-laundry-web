@@ -207,7 +207,6 @@ export default function TagEdit() {
                         }`}
                       >
                         <span className="flex-1">{i + 1}. {tag}</span>
-                        {scannedTag?.tagId === tag && <span className="text-xs font-bold ml-2">▶ selected</span>}
                       </div>
                     ))}
                   </div>
@@ -228,7 +227,6 @@ export default function TagEdit() {
                         }`}
                       >
                         <span className="flex-1">{i + 1}. {tag}</span>
-                        {scannedTag?.tagId === tag && <span className="text-xs font-bold ml-2">▶ selected</span>}
                       </div>
                     ))}
                   </div>
@@ -238,7 +236,7 @@ export default function TagEdit() {
           </div>
 
           {/* 태그 스캔 */}
-          <div className={scannedTag ? inactiveCard : activeCard}>
+          <div className={activeCard}>
             <div className={`${labelClass} mb-2`}>Scan Tag to Select</div>
             <TagScanner
               onScan={handleTagScan}
@@ -250,50 +248,56 @@ export default function TagEdit() {
               또는 위 목록에서 태그를 직접 클릭해서 선택하세요.
             </p>
           </div>
+        </>
+      )}
 
-          {/* 선택된 태그 액션 */}
-          {scannedTag && (
-            <div className={activeCard}>
-              <div className={`${labelClass} mb-3`}>Selected Tag</div>
-              <div className={`px-4 py-3 rounded-lg font-mono text-lg font-bold mb-4 ${
-                scannedTag.type === 'shirt'
-                  ? 'bg-green-50 text-green-800'
-                  : 'bg-[#FEF3E2] text-[#92400E]'
-              }`}>
-                {scannedTag.tagId}
-                <span className="ml-3 text-sm font-semibold opacity-60">
-                  ({scannedTag.type === 'shirt' ? 'Shirt' : 'D/C'})
-                </span>
-              </div>
-
-              <div className="flex gap-3">
-                {/* 이동 버튼 */}
-                <button
-                  onClick={handleMove}
-                  disabled={saving}
-                  className="flex-1 py-3 font-bold rounded-lg transition-colors text-base bg-[#18181B] text-white hover:bg-gray-700 disabled:opacity-40"
-                >
-                  {scannedTag.type === 'shirt' ? '→ Move to D/C' : '→ Move to Shirt'}
-                </button>
-                {/* 삭제 버튼 */}
-                <button
-                  onClick={handleDelete}
-                  disabled={saving}
-                  className="flex-1 py-3 font-bold rounded-lg transition-colors text-base bg-red-500 text-white hover:bg-red-600 disabled:opacity-40"
-                >
-                  Delete Tag
-                </button>
-              </div>
-
+      {/* 태그 액션 모달 */}
+      {scannedTag && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold text-gray-800">Tag Action</h2>
               <button
                 onClick={() => setScannedTag(null)}
-                className="mt-2 w-full text-sm text-gray-400 hover:text-gray-600 py-1"
+                className="text-gray-400 hover:text-gray-600 text-xl font-bold"
+              >✕</button>
+            </div>
+
+            <div className={`px-4 py-3 rounded-lg font-mono text-lg font-bold mb-6 ${
+              scannedTag.type === 'shirt'
+                ? 'bg-green-50 text-green-800'
+                : 'bg-[#FEF3E2] text-[#92400E]'
+            }`}>
+              {scannedTag.tagId}
+              <span className="ml-3 text-sm font-semibold opacity-60">
+                ({scannedTag.type === 'shirt' ? 'Shirt' : 'D/C'})
+              </span>
+            </div>
+
+            <div className="flex gap-3 mb-3">
+              <button
+                onClick={handleMove}
+                disabled={saving}
+                className="flex-1 py-3 font-bold rounded-lg transition-colors text-base bg-[#18181B] text-white hover:bg-gray-700 disabled:opacity-40"
               >
-                Cancel
+                {scannedTag.type === 'shirt' ? '→ Move to D/C' : '→ Move to Shirt'}
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={saving}
+                className="flex-1 py-3 font-bold rounded-lg transition-colors text-base bg-red-500 text-white hover:bg-red-600 disabled:opacity-40"
+              >
+                Delete
               </button>
             </div>
-          )}
-        </>
+            <button
+              onClick={() => setScannedTag(null)}
+              className="w-full py-2 text-sm font-semibold text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
 
       {/* 저장 중 오버레이 */}
