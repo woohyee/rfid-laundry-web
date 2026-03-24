@@ -7,10 +7,12 @@ import Tagging from '@/pages/Tagging'
 import Receiving from '@/pages/Receiving'
 import Lookup from '@/pages/Lookup'
 import TagEdit from '@/pages/TagEdit'
+import DayCheck from '@/pages/DayCheck'
 
 const TABS = [
   { id: 'tagging', label: 'Tagging' },
   { id: 'receiving', label: 'Receiving' },
+  { id: 'daycheck', label: 'Day Check' },
   { id: 'lookup', label: 'Lookup' },
   { id: 'edit', label: 'Edit' },
 ]
@@ -71,6 +73,7 @@ export default function Layout() {
       <main className="flex-1 p-6 sm:p-10 max-w-4xl w-full">
         {activeTab === 'tagging' && <Tagging />}
         {activeTab === 'receiving' && <Receiving />}
+        {activeTab === 'daycheck' && <DayCheck />}
         {activeTab === 'lookup' && <Lookup />}
         {activeTab === 'edit' && <TagEdit />}
       </main>
