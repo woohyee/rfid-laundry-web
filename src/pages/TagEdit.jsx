@@ -138,7 +138,9 @@ export default function TagEdit() {
   const inactiveCard = 'rounded-xl p-4 bg-white border border-[#E4E2DC]'
 
   return (
-    <div className="max-w-lg mx-auto space-y-4 relative">
+    <>
+
+    <div className="max-w-lg mx-auto space-y-4">
 
       <ErrorBanner message={error} onClose={() => setError(null)} />
 
@@ -251,8 +253,10 @@ export default function TagEdit() {
         </>
       )}
 
-      {/* 태그 액션 모달 */}
-      {scannedTag && (
+    </div>
+
+    {/* 태그 액션 모달 — 컨테이너 밖에서 렌더링 */}
+    {scannedTag && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full">
             <div className="flex justify-between items-center mb-4">
@@ -300,19 +304,19 @@ export default function TagEdit() {
         </div>
       )}
 
-      {/* 저장 중 오버레이 */}
-      {saving && (
-        <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl px-8 py-6 shadow-xl text-lg font-medium">Saving...</div>
-        </div>
-      )}
+    {/* 저장 중 오버레이 */}
+    {saving && (
+      <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50">
+        <div className="bg-white rounded-xl px-8 py-6 shadow-xl text-lg font-medium">Saving...</div>
+      </div>
+    )}
 
-      {/* Toast */}
-      {toast && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-green-600 text-white px-8 py-4 rounded-xl shadow-2xl text-xl font-bold z-50">
-          ✓ {toast}
-        </div>
-      )}
-    </div>
+    {/* Toast */}
+    {toast && (
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-green-600 text-white px-8 py-4 rounded-xl shadow-2xl text-xl font-bold z-50">
+        ✓ {toast}
+      </div>
+    )}
+    </>
   )
 }
