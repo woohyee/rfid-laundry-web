@@ -190,22 +190,6 @@ export default function Lookup() {
 
       <ErrorBanner message={error} onClose={() => setError(null)} />
 
-      {/* 미도착 인보이스 */}
-      {pendingInvoices.length > 0 && statusFilter === 'all' && !hasDateFilter && (
-        <div className="bg-red-50 border-2 border-red-300 rounded-xl p-5">
-          <h2 className="text-lg font-bold text-red-700 mb-3">Pending ({pendingInvoices.length})</h2>
-          <div className="space-y-2">
-            {pendingInvoices.map(inv => (
-              <div key={inv.id} className="flex items-center justify-between bg-white px-4 py-2 rounded-lg shadow-sm">
-                <span className="font-bold text-red-800 font-mono">{inv.invoiceNo}</span>
-                <span className="text-sm text-gray-500">{fmtDate(inv.createdAt)}</span>
-                <span className="text-sm text-gray-600">D/C {inv.dcCount} · Shirts {inv.shirtCount}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* 전체 목록 */}
       <div className="bg-white rounded-xl shadow-md p-5">
         <h2 className="text-lg font-bold text-gray-800 mb-4">All Invoices</h2>
