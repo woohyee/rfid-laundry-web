@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, addDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import TagScanner from '@/components/TagScanner'
@@ -7,11 +7,17 @@ import ErrorBanner from '@/components/ErrorBanner'
 
 const STEPS = {
   INVOICE: 'invoice',
-  DC_COUNT: 'dcCount',
-  DC_SCAN: 'dcScan',
   SHIRT_COUNT: 'shirtCount',
-  SHIRT_SCAN: 'shirtScan'
+  SHIRT_SCAN: 'shirtScan',
+  DC_COUNT: 'dcCount',
+  DC_SCAN: 'dcScan'
 }
+
+// 단계 순서 (비교용)
+const STEP_ORDER = [STEPS.INVOICE, STEPS.SHIRT_COUNT, STEPS.SHIRT_SCAN, STEPS.DC_COUNT, STEPS.DC_SCAN]
+function stepIndex(s) { return STEP_ORDER.indexOf(s) }
+function stepGte(a, b) { return stepIndex(a) >= stepIndex(b) }
+function stepGt(a, b) { return stepIndex(a) > stepIndex(b) }
 
 function looksLikeTagId(val) {
   return /^\d{6,}$/.test(val.trim())
@@ -21,58 +27,60 @@ export default function Tagging() {
   const { user } = useAuth()
   const [step, setStep] = useState(STEPS.INVOICE)
   const [invoiceNo, setInvoiceNo] = useState('')
-  const [dcCount, setDcCount] = useState('')
   const [shirtCount, setShirtCount] = useState('')
-  const [dcTags, setDcTags] = useState([])
+  const [dcCount, setDcCount] = useState('')
   const [shirtTags, setShirtTags] = useState([])
+  const [dcTags, setDcTags] = useState([])
+  const [editingTag, setEditingTag] = useState(null) // { type: 'shirt'|'dc', index: number, value: string }
   const [toast, setToast] = useState(null)
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
 
   const invoiceRef = useRef(null)
-  const dcCountRef = useRef(null)
   const shirtCountRef = useRef(null)
+  const dcCountRef = useRef(null)
 
   useEffect(() => {
     const delay = (step === STEPS.SHIRT_COUNT || step === STEPS.DC_COUNT) ? 500 : 50
     const t = setTimeout(() => {
       if (step === STEPS.INVOICE) invoiceRef.current?.focus()
-      if (step === STEPS.DC_COUNT) dcCountRef.current?.focus()
       if (step === STEPS.SHIRT_COUNT) shirtCountRef.current?.focus()
+      if (step === STEPS.DC_COUNT) dcCountRef.current?.focus()
     }, delay)
     return () => clearTimeout(t)
   }, [step])
 
   function goBack() {
     setError(null)
-    if (step === STEPS.DC_COUNT) setStep(STEPS.INVOICE)
-    else if (step === STEPS.DC_SCAN) { setDcTags([]); setStep(STEPS.DC_COUNT) }
-    else if (step === STEPS.SHIRT_COUNT) setStep(STEPS.DC_SCAN)
+    if (step === STEPS.SHIRT_COUNT) setStep(STEPS.INVOICE)
     else if (step === STEPS.SHIRT_SCAN) { setShirtTags([]); setStep(STEPS.SHIRT_COUNT) }
+    else if (step === STEPS.DC_COUNT) {
+      const shirtNum = parseInt(shirtCount, 10) || 0
+      setStep(shirtNum > 0 ? STEPS.SHIRT_SCAN : STEPS.SHIRT_COUNT)
+    }
+    else if (step === STEPS.DC_SCAN) { setDcTags([]); setStep(STEPS.DC_COUNT) }
   }
 
-  function handleInvoiceKey(e) {
-    if (e.key === 'Enter' && invoiceNo.trim()) setStep(STEPS.DC_COUNT)
-  }
-
-  function handleDcCountKey(e) {
-    if (e.key !== 'Enter') return
-    const raw = dcCount.trim()
-    if (looksLikeTagId(raw)) {
-      setDcCount('')
-      setError('Tag ID detected in D/C count — please enter a number only.')
-      return
-    }
-    const count = raw === '' ? 0 : parseInt(raw, 10)
-    if (isNaN(count) || count < 0 || count > 99) {
-      setDcCount('')
-      setError('D/C count must be between 0 and 99.')
-      return
-    }
-    if (raw === '') setDcCount('0')
+  async function handleInvoiceKey(e) {
+    if (e.key !== 'Enter' || !invoiceNo.trim()) return
+    // 중복 인보이스 체크
     setError(null)
-    if (count > 0) setStep(STEPS.DC_SCAN)
-    else setStep(STEPS.SHIRT_COUNT)
+    try {
+      const q = query(
+        collection(db, 'invoices'),
+        where('shopId', '==', user.uid),
+        where('invoiceNo', '==', invoiceNo.trim())
+      )
+      const snap = await getDocs(q)
+      if (!snap.empty) {
+        setError(`Invoice #${invoiceNo.trim()} already exists. Please check the invoice number.`)
+        return
+      }
+    } catch (e) {
+      setError('Check failed: ' + e.message)
+      return
+    }
+    setStep(STEPS.SHIRT_COUNT)
   }
 
   function handleShirtCountKey(e) {
@@ -92,45 +100,91 @@ export default function Tagging() {
     if (raw === '') setShirtCount('0')
     setError(null)
     if (count > 0) setStep(STEPS.SHIRT_SCAN)
-    else {
-      if (dcTags.length === 0) resetAll()
-      else saveInvoice(dcTags, [])
-    }
+    else setStep(STEPS.DC_COUNT)
   }
 
-  function handleDcScan(tagId) {
-    if (dcTags.includes(tagId) || shirtTags.includes(tagId)) return
-    const newDcTags = [...dcTags, tagId]
-    setDcTags(newDcTags)
-    if (newDcTags.length >= parseInt(dcCount, 10)) setStep(STEPS.SHIRT_COUNT)
+  function handleDcCountKey(e) {
+    if (e.key !== 'Enter') return
+    const raw = dcCount.trim()
+    if (looksLikeTagId(raw)) {
+      setDcCount('')
+      setError('Tag ID detected in D/C count — please enter a number only.')
+      return
+    }
+    const count = raw === '' ? 0 : parseInt(raw, 10)
+    if (isNaN(count) || count < 0 || count > 99) {
+      setDcCount('')
+      setError('D/C count must be between 0 and 99.')
+      return
+    }
+    if (raw === '') setDcCount('0')
+    setError(null)
+    if (count > 0) setStep(STEPS.DC_SCAN)
+    else {
+      if (shirtTags.length === 0) resetAll()
+      else saveInvoice(shirtTags, [])
+    }
   }
 
   function handleShirtScan(tagId) {
     if (shirtTags.includes(tagId) || dcTags.includes(tagId)) return
     const newShirtTags = [...shirtTags, tagId]
     setShirtTags(newShirtTags)
-    if (newShirtTags.length >= parseInt(shirtCount, 10)) saveInvoice(dcTags, newShirtTags)
+    if (newShirtTags.length >= parseInt(shirtCount, 10)) setStep(STEPS.DC_COUNT)
   }
 
-  async function saveInvoice(finalDcTags, finalShirtTags) {
+  function handleDcScan(tagId) {
+    if (dcTags.includes(tagId) || shirtTags.includes(tagId)) return
+    const newDcTags = [...dcTags, tagId]
+    setDcTags(newDcTags)
+    if (newDcTags.length >= parseInt(dcCount, 10)) saveInvoice(shirtTags, newDcTags)
+  }
+
+  // 태그 인라인 편집 확정
+  function commitEdit() {
+    if (!editingTag) return
+    const newVal = editingTag.value.trim()
+    if (!newVal) { setEditingTag(null); return }
+    if (editingTag.type === 'shirt') {
+      const others = shirtTags.filter((_, i) => i !== editingTag.index)
+      if (others.includes(newVal) || dcTags.includes(newVal)) {
+        setError('Duplicate tag ID.')
+        setEditingTag(null)
+        return
+      }
+      const updated = [...shirtTags]
+      updated[editingTag.index] = newVal
+      setShirtTags(updated)
+    } else {
+      const others = dcTags.filter((_, i) => i !== editingTag.index)
+      if (others.includes(newVal) || shirtTags.includes(newVal)) {
+        setError('Duplicate tag ID.')
+        setEditingTag(null)
+        return
+      }
+      const updated = [...dcTags]
+      updated[editingTag.index] = newVal
+      setDcTags(updated)
+    }
+    setEditingTag(null)
+  }
+
+  async function saveInvoice(finalShirtTags, finalDcTags) {
     setError(null)
     setSaving(true)
     try {
-      // Firestore에 인보이스 저장
-      const invoiceRef = await addDoc(collection(db, 'invoices'), {
+      await addDoc(collection(db, 'invoices'), {
         invoiceNo: invoiceNo.trim(),
         shopId: user.uid,
-        dcCount: parseInt(dcCount, 10) || 0,
         shirtCount: parseInt(shirtCount, 10) || 0,
+        dcCount: parseInt(dcCount, 10) || 0,
         status: 'pending',
         createdAt: serverTimestamp(),
         receivedAt: null,
         photoUrls: [],
-        // 태그 목록을 배열로 저장 (Firestore 서브컬렉션 대신 간단하게)
-        dcTags: finalDcTags,
         shirtTags: finalShirtTags,
+        dcTags: finalDcTags,
       })
-
       showToast(`Saved: #${invoiceNo}`)
       resetAll()
     } catch (e) {
@@ -147,16 +201,17 @@ export default function Tagging() {
 
   function resetAll() {
     setInvoiceNo('')
-    setDcCount('')
     setShirtCount('')
-    setDcTags([])
+    setDcCount('')
     setShirtTags([])
+    setDcTags([])
+    setEditingTag(null)
     setError(null)
     setStep(STEPS.INVOICE)
   }
 
-  const dcCountNum = parseInt(dcCount, 10) || 0
   const shirtCountNum = parseInt(shirtCount, 10) || 0
+  const dcCountNum = parseInt(dcCount, 10) || 0
   const activeCard = 'rounded-xl p-4 bg-white shadow-md border-2 border-[#E07B0F]'
   const inactiveCard = 'rounded-xl p-4 bg-white border border-[#E4E2DC]'
   const activeInput = 'w-full border-2 border-[#E07B0F] rounded-lg px-4 py-3 text-2xl font-mono font-bold text-gray-900 focus:outline-none focus:border-[#C46A09] bg-white'
@@ -165,10 +220,48 @@ export default function Tagging() {
 
   const hasData = invoiceNo || step !== STEPS.INVOICE
 
+  // 태그 행 렌더러 (공통)
+  function renderTagRow(tag, i, type, bgClass, textClass) {
+    const isEditing = editingTag?.type === type && editingTag?.index === i
+    return (
+      <div key={i} className={`flex items-center justify-between ${bgClass} px-3 py-1 rounded text-sm font-mono ${textClass}`}>
+        {isEditing ? (
+          <input
+            autoFocus
+            value={editingTag.value}
+            onChange={e => setEditingTag(prev => ({ ...prev, value: e.target.value }))}
+            onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditingTag(null) }}
+            onBlur={commitEdit}
+            className="flex-1 bg-white border border-[#E07B0F] rounded px-2 py-0.5 font-mono text-sm text-gray-900 focus:outline-none mr-2"
+          />
+        ) : (
+          <span className="flex-1">{i + 1}. {tag}</span>
+        )}
+        <div className="flex items-center gap-1 ml-2 shrink-0">
+          {!isEditing && (
+            <button
+              onClick={() => setEditingTag({ type, index: i, value: tag })}
+              className="text-gray-400 hover:text-[#E07B0F] font-bold text-base leading-none"
+              title="Edit tag"
+            >✎</button>
+          )}
+          <button
+            onClick={() => {
+              if (type === 'shirt') setShirtTags(prev => prev.filter((_, idx) => idx !== i))
+              else setDcTags(prev => prev.filter((_, idx) => idx !== i))
+              if (isEditing) setEditingTag(null)
+            }}
+            className="text-red-400 hover:text-red-600 font-bold"
+          >✕</button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-lg mx-auto space-y-3 relative">
 
-      {/* Reset 버튼 — 데이터 있을 때 항상 표시 */}
+      {/* Reset 버튼 */}
       {hasData && (
         <div className="flex justify-end">
           <button
@@ -205,61 +298,8 @@ export default function Tagging() {
         </div>
       </div>
 
-      {/* D/C 수량 */}
-      {step >= STEPS.DC_COUNT && (
-        <div className={step === STEPS.DC_COUNT ? activeCard : inactiveCard}>
-          <div className="flex justify-between items-center mb-2">
-            <div className={labelClass}>D/C Count</div>
-            {step === STEPS.DC_COUNT && (
-              <button onClick={goBack} className="text-xs text-gray-400 hover:text-gray-600">← Back</button>
-            )}
-          </div>
-          <input
-            ref={dcCountRef}
-            type="number"
-            min="0" max="99"
-            value={dcCount}
-            onChange={e => setDcCount(e.target.value)}
-            onKeyDown={handleDcCountKey}
-            placeholder="0"
-            disabled={step !== STEPS.DC_COUNT}
-            className={step === STEPS.DC_COUNT ? activeInput : disabledInput}
-          />
-        </div>
-      )}
-
-      {/* D/C 스캔 */}
-      {(step === STEPS.DC_SCAN || (step > STEPS.DC_SCAN && dcTags.length > 0)) && (
-        <div className={step === STEPS.DC_SCAN ? activeCard : inactiveCard}>
-          <div className="flex justify-between items-center mb-2">
-            <div className={labelClass}>Scan D/C Tags</div>
-            {step === STEPS.DC_SCAN && (
-              <button onClick={goBack} className="text-xs text-gray-400 hover:text-gray-600">← Back</button>
-            )}
-          </div>
-          <div className="text-center my-2">
-            <span className="text-8xl font-extrabold" style={{color:'#E07B0F'}}>{dcTags.length}</span>
-            <span className="text-5xl font-bold text-gray-300"> / </span>
-            <span className="text-8xl font-extrabold text-gray-400">{dcCountNum}</span>
-          </div>
-          <TagScanner onScan={handleDcScan} placeholder="Scan D/C RFID tag..." autoFocus={step === STEPS.DC_SCAN} disabled={step !== STEPS.DC_SCAN} />
-          {dcTags.length > 0 && (
-            <div className="mt-3 space-y-1">
-              {dcTags.map((tag, i) => (
-                <div key={i} className="flex items-center justify-between bg-[#FEF3E2] px-3 py-1 rounded text-sm font-mono text-[#92400E]">
-                  <span>{i + 1}. {tag}</span>
-                  {step === STEPS.DC_SCAN && (
-                    <button onClick={() => setDcTags(prev => prev.filter(t => t !== tag))} className="text-red-400 hover:text-red-600 ml-2 font-bold">✕</button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* 셔츠 수량 */}
-      {(step === STEPS.SHIRT_COUNT || step === STEPS.SHIRT_SCAN || shirtCount !== '') && (
+      {stepGte(step, STEPS.SHIRT_COUNT) && (
         <div className={step === STEPS.SHIRT_COUNT ? activeCard : inactiveCard}>
           <div className="flex justify-between items-center mb-2">
             <div className={labelClass}>Shirt Count</div>
@@ -282,7 +322,7 @@ export default function Tagging() {
       )}
 
       {/* 셔츠 스캔 */}
-      {(step === STEPS.SHIRT_SCAN || shirtTags.length > 0) && (
+      {(step === STEPS.SHIRT_SCAN || (stepGt(step, STEPS.SHIRT_SCAN) && shirtTags.length > 0)) && (
         <div className={step === STEPS.SHIRT_SCAN ? activeCard : inactiveCard}>
           <div className="flex justify-between items-center mb-2">
             <div className={labelClass}>Scan Shirt Tags</div>
@@ -298,14 +338,53 @@ export default function Tagging() {
           <TagScanner onScan={handleShirtScan} placeholder="Scan shirt RFID tag..." autoFocus={step === STEPS.SHIRT_SCAN} disabled={step !== STEPS.SHIRT_SCAN} />
           {shirtTags.length > 0 && (
             <div className="mt-3 space-y-1">
-              {shirtTags.map((tag, i) => (
-                <div key={i} className="flex items-center justify-between bg-green-50 px-3 py-1 rounded text-sm font-mono text-green-800">
-                  <span>{i + 1}. {tag}</span>
-                  {step === STEPS.SHIRT_SCAN && (
-                    <button onClick={() => setShirtTags(prev => prev.filter(t => t !== tag))} className="text-red-400 hover:text-red-600 ml-2 font-bold">✕</button>
-                  )}
-                </div>
-              ))}
+              {shirtTags.map((tag, i) => renderTagRow(tag, i, 'shirt', 'bg-green-50', 'text-green-800'))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* D/C 수량 */}
+      {stepGte(step, STEPS.DC_COUNT) && (
+        <div className={step === STEPS.DC_COUNT ? activeCard : inactiveCard}>
+          <div className="flex justify-between items-center mb-2">
+            <div className={labelClass}>D/C Count</div>
+            {step === STEPS.DC_COUNT && (
+              <button onClick={goBack} className="text-xs text-gray-400 hover:text-gray-600">← Back</button>
+            )}
+          </div>
+          <input
+            ref={dcCountRef}
+            type="number"
+            min="0" max="99"
+            value={dcCount}
+            onChange={e => setDcCount(e.target.value)}
+            onKeyDown={handleDcCountKey}
+            placeholder="0"
+            disabled={step !== STEPS.DC_COUNT}
+            className={step === STEPS.DC_COUNT ? activeInput : disabledInput}
+          />
+        </div>
+      )}
+
+      {/* D/C 스캔 */}
+      {(step === STEPS.DC_SCAN || dcTags.length > 0) && (
+        <div className={step === STEPS.DC_SCAN ? activeCard : inactiveCard}>
+          <div className="flex justify-between items-center mb-2">
+            <div className={labelClass}>Scan D/C Tags</div>
+            {step === STEPS.DC_SCAN && (
+              <button onClick={goBack} className="text-xs text-gray-400 hover:text-gray-600">← Back</button>
+            )}
+          </div>
+          <div className="text-center my-2">
+            <span className="text-8xl font-extrabold" style={{color:'#E07B0F'}}>{dcTags.length}</span>
+            <span className="text-5xl font-bold text-gray-300"> / </span>
+            <span className="text-8xl font-extrabold text-gray-400">{dcCountNum}</span>
+          </div>
+          <TagScanner onScan={handleDcScan} placeholder="Scan D/C RFID tag..." autoFocus={step === STEPS.DC_SCAN} disabled={step !== STEPS.DC_SCAN} />
+          {dcTags.length > 0 && (
+            <div className="mt-3 space-y-1">
+              {dcTags.map((tag, i) => renderTagRow(tag, i, 'dc', 'bg-[#FEF3E2]', 'text-[#92400E]'))}
             </div>
           )}
         </div>

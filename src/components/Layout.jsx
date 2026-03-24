@@ -6,11 +6,13 @@ import { useAuth } from '@/context/AuthContext'
 import Tagging from '@/pages/Tagging'
 import Receiving from '@/pages/Receiving'
 import Lookup from '@/pages/Lookup'
+import TagEdit from '@/pages/TagEdit'
 
 const TABS = [
   { id: 'tagging', label: 'Tagging' },
   { id: 'receiving', label: 'Receiving' },
   { id: 'lookup', label: 'Lookup' },
+  { id: 'edit', label: 'Edit' },
 ]
 
 export default function Layout() {
@@ -26,7 +28,7 @@ export default function Layout() {
       {/* 상단 헤더 */}
       <header className="px-6 sm:px-10 py-4" style={{ background: '#18181B' }}>
         <div className="flex items-center gap-4">
-          <img src={logo} alt="RFID Laundry" className="h-16 w-auto" />
+          <img src={logo} alt="RFID Laundry" className="h-20 w-auto" />
           <div>
             <h1 className="text-3xl font-bold" style={{ color: '#FAFAFA', letterSpacing: '-0.02em' }}>
               RFID Laundry
@@ -70,6 +72,7 @@ export default function Layout() {
         {activeTab === 'tagging' && <Tagging />}
         {activeTab === 'receiving' && <Receiving />}
         {activeTab === 'lookup' && <Lookup />}
+        {activeTab === 'edit' && <TagEdit />}
       </main>
     </div>
   )
