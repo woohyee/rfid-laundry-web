@@ -50,10 +50,10 @@ export default function Layout() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-4 text-2xl font-bold border-b-2 transition-colors ${
+                className={`px-6 py-3 text-2xl font-bold rounded-t-lg transition-colors ${
                   activeTab === tab.id
-                    ? 'border-[#E07B0F] text-[#E07B0F]'
-                    : 'border-transparent text-white/55 hover:text-white/85'
+                    ? 'bg-[#E07B0F] text-white'
+                    : 'text-white/55 hover:text-white/85 hover:bg-white/10'
                 }`}
               >
                 {tab.label}
