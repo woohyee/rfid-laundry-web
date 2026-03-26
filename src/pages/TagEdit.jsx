@@ -279,7 +279,7 @@ export default function TagEdit() {
 
           {/* 태그 스캔 */}
           <div className={activeCard}>
-            <div className={`${labelClass} mb-2`}>Scan Tag to Select</div>
+            <div className={`${labelClass} mb-2`}>Scan Tag to Select or Add</div>
             <TagScanner
               onScan={handleTagScan}
               placeholder="Scan RFID tag..."
