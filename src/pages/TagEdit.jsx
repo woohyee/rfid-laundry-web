@@ -14,6 +14,7 @@ export default function TagEdit() {
   const [error, setError] = useState(null)
   const [toast, setToast] = useState(null)
   const [scannedTag, setScannedTag] = useState(null) // { tagId, type: 'shirt'|'dc' }
+  const [addingTag, setAddingTag] = useState(null)   // 새로 추가할 태그 ID
   const [editingDay, setEditingDay] = useState(false)
   const searchRef = useRef(null)
 
@@ -47,18 +48,36 @@ export default function TagEdit() {
     setLoading(false)
   }
 
-  // 태그 스캔 → 어느 카테고리인지 찾기
+  // 태그 스캔 → 기존 태그 선택 또는 새 태그 추가 모달
   function handleTagScan(tagId) {
     if (!invoice) return
     setError(null)
     const inShirt = (invoice.shirtTags || []).includes(tagId)
     const inDc = (invoice.dcTags || []).includes(tagId)
     if (!inShirt && !inDc) {
-      setError(`Tag ${tagId} not found in invoice #${invoice.invoiceNo}.`)
-      setScannedTag(null)
+      // 이 인보이스에 없는 태그 → 추가 모달
+      setAddingTag(tagId)
       return
     }
     setScannedTag({ tagId, type: inShirt ? 'shirt' : 'dc' })
+  }
+
+  // 태그 추가 (shirt 또는 dc)
+  async function handleAddTag(type) {
+    if (!addingTag) return
+    const tagId = addingTag
+    setAddingTag(null)
+    if (type === 'shirt') {
+      await applyChange({
+        shirtTags: [...(invoice.shirtTags || []), tagId],
+        shirtCount: (invoice.shirtCount || 0) + 1,
+      })
+    } else {
+      await applyChange({
+        dcTags: [...(invoice.dcTags || []), tagId],
+        dcCount: (invoice.dcCount || 0) + 1,
+      })
+    }
   }
 
   // Firestore 업데이트 후 로컬 invoice 상태도 갱신
@@ -275,6 +294,46 @@ export default function TagEdit() {
       )}
 
     </div>
+
+    {/* 태그 추가 모달 */}
+    {addingTag && (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-bold text-gray-800">Add Tag</h2>
+            <button onClick={() => setAddingTag(null)} className="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
+          </div>
+          <div className="px-4 py-3 rounded-lg font-mono text-lg font-bold mb-2 bg-gray-100 text-gray-800">
+            {addingTag}
+          </div>
+          <p className="text-sm text-gray-500 mb-5">
+            Not in invoice <span className="font-bold text-gray-700">#{invoice?.invoiceNo}</span>. Add as:
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => handleAddTag('shirt')}
+              disabled={saving}
+              className="flex-1 py-3 font-bold rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors disabled:opacity-40 text-base"
+            >
+              + Shirt
+            </button>
+            <button
+              onClick={() => handleAddTag('dc')}
+              disabled={saving}
+              className="flex-1 py-3 font-bold rounded-lg bg-[#E07B0F] text-white hover:bg-[#C46A09] transition-colors disabled:opacity-40 text-base"
+            >
+              + D/C
+            </button>
+          </div>
+          <button
+            onClick={() => setAddingTag(null)}
+            className="w-full mt-3 py-2 text-sm font-semibold text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    )}
 
     {/* 요일 선택 모달 */}
     {editingDay && (

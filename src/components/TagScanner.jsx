@@ -12,6 +12,26 @@ export default function TagScanner({ onScan, placeholder = "Scan RFID tag...", a
     }
   }, [disabled])
 
+  // 다른 탭/창 갔다 돌아올 때 자동 포커스
+  useEffect(() => {
+    if (!autoFocus || disabled) return
+    function onWindowFocus() {
+      inputRef.current?.focus()
+    }
+    // 페이지 아무 곳 클릭 시 포커스 (모달 등 제외)
+    function onDocClick(e) {
+      if (inputRef.current && !inputRef.current.contains(e.target)) {
+        inputRef.current.focus()
+      }
+    }
+    window.addEventListener('focus', onWindowFocus)
+    document.addEventListener('click', onDocClick)
+    return () => {
+      window.removeEventListener('focus', onWindowFocus)
+      document.removeEventListener('click', onDocClick)
+    }
+  }, [autoFocus, disabled])
+
   function handleKeyDown(e) {
     if (e.key === 'Enter' && value.trim()) {
       const cleaned = value.trim()
