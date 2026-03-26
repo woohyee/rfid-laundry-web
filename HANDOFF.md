@@ -1,13 +1,12 @@
 # HANDOFF — rfid-laundry-web
 
-## 마지막 세션: 2026-03-24
+## 마지막 세션: 2026-03-26
 
 ### 오늘 한 것
-- **Due Day 기능 추가**: 태깅 시 인보이스 번호 입력 후 요일(MON~SAT) 선택 단계 삽입 → Firestore `dueDay` 필드 저장
-- **Day Check 탭 신설**: RFID 태그 스캔 → 인보이스 번호 + 요일 크게 표시. 요일 없는 기존 인보이스는 바로 요일 선택 후 DB 저장
-- **Edit 탭 요일 표시/수정**: 인보이스 검색 시 요일 표시, 클릭하면 요일 변경 모달
-- **탭 버튼 스타일 개선**: 활성 탭 배경색 채움 (`#E07B0F` + 흰 글씨)
-- **Edit 인보이스 번호 # 제거**
+- **TagScanner 포커스 버그 수정**: 다른 탭(유튜브 등) 갔다 돌아왔을 때 브라우저 클릭만 해도 태그 스캔 자동 활성화 (`window focus` + `document click` 이벤트 추가)
+- **Edit 탭 태그 추가 기능**: 인보이스에 없는 새 태그 스캔 시 "Add Tag" 모달 표시 → Shirt / D/C 선택 후 저장
+- **Edit 탭 레이블 변경**: "Scan Tag to Select" → "Scan Tag to Select or Add"
+- **gstack 자동 업그레이드**: v0.11.10.0 → v0.11.21.0
 
 ### 현재 상태
 - 배포 완료 (`rfid-laundry-web.vercel.app`)
@@ -27,3 +26,4 @@
 - 배포 URL: rfid-laundry-web.vercel.app
 - 디자인 컬러: Header `#18181B`, Accent `#E07B0F`, BG `#F7F6F3`
 - dueDay 필드: 신규 인보이스는 태깅 시 입력, 기존 인보이스는 Day Check 탭에서 스캔 후 입력 가능
+- TagScanner의 `document click` 이벤트: 모달 열려있을 때도 포커스 이동하므로 모달 UX 주의 (현재는 문제 없음)
