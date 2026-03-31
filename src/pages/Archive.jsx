@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore'
+import { collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import ErrorBanner from '@/components/ErrorBanner'
@@ -26,12 +26,18 @@ export default function Archive() {
     try {
       const q = query(
         collection(db, 'invoices'),
-        where('shopId', '==', user.uid),
-        where('status', '==', 'archived'),
-        orderBy('receivedAt', 'desc')
+        where('shopId', '==', user.uid)
       )
       const snap = await getDocs(q)
-      setInvoices(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      const data = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(inv => inv.status === 'archived')
+        .sort((a, b) => {
+          const aTime = a.receivedAt?.toDate?.() ?? new Date(0)
+          const bTime = b.receivedAt?.toDate?.() ?? new Date(0)
+          return bTime - aTime
+        })
+      setInvoices(data)
     } catch (e) {
       setError(e.message)
     }
