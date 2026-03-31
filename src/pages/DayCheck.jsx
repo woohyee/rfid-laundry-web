@@ -26,7 +26,8 @@ export default function DayCheck() {
     try {
       const q = query(
         collection(db, 'invoices'),
-        where('shopId', '==', user.uid)
+        where('shopId', '==', user.uid),
+        where('status', '==', 'pending')
       )
       const snapshot = await getDocs(q)
 

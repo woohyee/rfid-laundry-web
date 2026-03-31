@@ -15,6 +15,7 @@ export default function Receiving() {
 
   async function handleScan(tagId) {
     setError(null)
+    setLastScan(null)
 
     // 이번 세션에서 이미 스캔한 태그 무시
     if (sessionTags.includes(tagId)) {
@@ -36,6 +37,7 @@ export default function Receiving() {
 
       for (const docSnap of snapshot.docs) {
         const data = docSnap.data()
+        if (data.status === 'received') continue
         if (data.dcTags?.includes(tagId)) {
           foundInvoice = { id: docSnap.id, ...data }
           tagCategory = 'dc'
@@ -53,16 +55,22 @@ export default function Receiving() {
         return
       }
 
-      // Firestore에 receivedTags 누적 저장 (세션 끊겨도 유지됨)
-      await updateDoc(doc(db, 'invoices', foundInvoice.id), {
-        receivedTags: arrayUnion(tagId),
-      })
-
       // 누적 receivedTags 계산
       const newReceived = [...(foundInvoice.receivedTags || []), tagId]
       const scannedDc = newReceived.filter(t => foundInvoice.dcTags?.includes(t)).length
       const scannedShirt = newReceived.filter(t => foundInvoice.shirtTags?.includes(t)).length
       const updatedInvoice = { ...foundInvoice, receivedTags: newReceived }
+
+      // 모든 태그 스캔 완료 여부
+      const totalDc = foundInvoice.dcCount || 0
+      const totalShirt = foundInvoice.shirtCount || 0
+      const isComplete = scannedDc >= totalDc && scannedShirt >= totalShirt
+
+      // Firestore 업데이트 (완료 시 status/receivedAt 포함 — 한 번에 처리)
+      await updateDoc(doc(db, 'invoices', foundInvoice.id), {
+        receivedTags: arrayUnion(tagId),
+        ...(isComplete && { status: 'received', receivedAt: serverTimestamp() }),
+      })
 
       // 세션 태그 목록에 추가
       setSessionTags(prev => [...prev, tagId])
@@ -72,14 +80,7 @@ export default function Receiving() {
       setSessionScanned(prev => ({ ...prev, [foundInvoice.id]: updated }))
       setLastScan({ invoice: updatedInvoice, tagCategory })
 
-      // 모든 태그 스캔 완료 확인
-      const totalDc = foundInvoice.dcCount || 0
-      const totalShirt = foundInvoice.shirtCount || 0
-      if (scannedDc >= totalDc && scannedShirt >= totalShirt) {
-        await updateDoc(doc(db, 'invoices', foundInvoice.id), {
-          status: 'received',
-          receivedAt: serverTimestamp(),
-        })
+      if (isComplete) {
         setSessionScanned(prev => ({
           ...prev,
           [foundInvoice.id]: { ...updated, done: true }

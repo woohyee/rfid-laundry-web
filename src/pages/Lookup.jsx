@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
   collection, query, where, getDocs,
-  doc, deleteDoc, updateDoc, writeBatch
+  doc, deleteDoc, updateDoc, writeBatch, serverTimestamp
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
@@ -52,8 +52,41 @@ export default function Lookup() {
   const [editValue, setEditValue] = useState('')
 
   useEffect(() => {
+    runArchiveCleanup()
+  }, [])
+
+  useEffect(() => {
     fetchInvoices()
   }, [statusFilter, dateFrom, dateTo])
+
+  // received → archived 전환 + 7일 초과 archived 삭제
+  async function runArchiveCleanup() {
+    try {
+      const today = new Date(); today.setHours(0, 0, 0, 0)
+      const cutoff7 = new Date(); cutoff7.setDate(cutoff7.getDate() - 7)
+      const q = query(
+        collection(db, 'invoices'),
+        where('shopId', '==', user.uid),
+        where('status', 'in', ['received', 'archived'])
+      )
+      const snap = await getDocs(q)
+      if (snap.empty) return
+      const batch = writeBatch(db)
+      snap.docs.forEach(d => {
+        const data = d.data()
+        const receivedDate = data.receivedAt?.toDate?.()
+        if (!receivedDate) return
+        if (data.status === 'archived' && receivedDate < cutoff7) {
+          batch.delete(d.ref)
+        } else if (data.status === 'received' && receivedDate < today) {
+          batch.update(d.ref, { status: 'archived' })
+        }
+      })
+      await batch.commit()
+    } catch (_) {
+      // cleanup 실패는 무시 (다음 진입 시 재시도)
+    }
+  }
 
   async function fetchInvoices() {
     setLoading(true)
@@ -65,6 +98,7 @@ export default function Lookup() {
       )
       const snapshot = await getDocs(q)
       let data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+        .filter(inv => inv.status !== 'archived')
 
       // 최신순 정렬
       data.sort((a, b) => {
