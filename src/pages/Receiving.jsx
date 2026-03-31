@@ -24,20 +24,27 @@ export default function Receiving() {
     }
 
     try {
-      // Firestore에서 이 태그가 속한 인보이스 찾기
+      // Firestore에서 이 태그가 속한 인보이스 찾기 (shopId만 필터, status는 클라이언트 처리)
       const q = query(
         collection(db, 'invoices'),
-        where('shopId', '==', user.uid),
-        where('status', '==', 'pending')
+        where('shopId', '==', user.uid)
       )
       const snapshot = await getDocs(q)
 
       let foundInvoice = null
       let tagCategory = null
 
+      const todayStr = new Date().toLocaleDateString('en-CA')
+
       for (const docSnap of snapshot.docs) {
         const data = docSnap.data()
-        if (data.status === 'received') continue
+        // archived는 완전 제외
+        if (data.status === 'archived') continue
+        // received는 당일만 허용
+        if (data.status === 'received') {
+          const receivedDate = data.receivedAt?.toDate?.()
+          if (!receivedDate || receivedDate.toLocaleDateString('en-CA') !== todayStr) continue
+        }
         if (data.dcTags?.includes(tagId)) {
           foundInvoice = { id: docSnap.id, ...data }
           tagCategory = 'dc'
@@ -52,6 +59,12 @@ export default function Receiving() {
 
       if (!foundInvoice) {
         setError(`Tag ${tagId} not found in any pending invoice.`)
+        return
+      }
+
+      // 이미 완료된 인보이스 태그 재스캔 시 안내만 표시
+      if (foundInvoice.status === 'received') {
+        setLastScan({ invoice: foundInvoice, tagCategory, alreadyDone: true })
         return
       }
 
@@ -129,8 +142,23 @@ export default function Receiving() {
             <TagScanner onScan={handleScan} placeholder="Scan RFID tag..." autoFocus={true} />
           </div>
 
+          {/* 이미 완료된 인보이스 재스캔 안내 */}
+          {lastScan?.alreadyDone && (
+            <div className="rounded-2xl shadow-lg overflow-hidden bg-blue-600">
+              <div className="flex flex-col items-center justify-center px-8 py-10 text-center">
+                <div className="text-xs font-semibold tracking-widest uppercase mb-4" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                  Already Received Today
+                </div>
+                <div className="leading-none text-white"
+                  style={{ fontSize: '5rem', fontFamily: "'Inter', sans-serif", fontWeight: 300, letterSpacing: '0.1em' }}>
+                  {lastScan.invoice.invoiceNo}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 마지막 스캔 결과 */}
-          {lastScan && lastSession && (() => {
+          {lastScan && !lastScan.alreadyDone && lastSession && (() => {
             const totalDc = lastInvoice.dcCount || 0
             const totalShirt = lastInvoice.shirtCount || 0
             const isDone = lastSession.done || (lastSession.scannedDc >= totalDc && lastSession.scannedShirt >= totalShirt)

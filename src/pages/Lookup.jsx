@@ -66,23 +66,26 @@ export default function Lookup() {
       const cutoff7 = new Date(); cutoff7.setDate(cutoff7.getDate() - 7)
       const q = query(
         collection(db, 'invoices'),
-        where('shopId', '==', user.uid),
-        where('status', 'in', ['received', 'archived'])
+        where('shopId', '==', user.uid)
       )
       const snap = await getDocs(q)
       if (snap.empty) return
       const batch = writeBatch(db)
+      let hasOps = false
       snap.docs.forEach(d => {
         const data = d.data()
+        if (data.status !== 'received' && data.status !== 'archived') return
         const receivedDate = data.receivedAt?.toDate?.()
         if (!receivedDate) return
         if (data.status === 'archived' && receivedDate < cutoff7) {
           batch.delete(d.ref)
+          hasOps = true
         } else if (data.status === 'received' && receivedDate < today) {
           batch.update(d.ref, { status: 'archived' })
+          hasOps = true
         }
       })
-      await batch.commit()
+      if (hasOps) await batch.commit()
     } catch (_) {
       // cleanup 실패는 무시 (다음 진입 시 재시도)
     }

@@ -26,14 +26,14 @@ export default function DayCheck() {
     try {
       const q = query(
         collection(db, 'invoices'),
-        where('shopId', '==', user.uid),
-        where('status', '==', 'pending')
+        where('shopId', '==', user.uid)
       )
       const snapshot = await getDocs(q)
 
       let found = null
       for (const docSnap of snapshot.docs) {
         const data = docSnap.data()
+        if (data.status !== 'pending') continue
         if (data.shirtTags?.includes(tagId) || data.dcTags?.includes(tagId)) {
           found = { invoiceNo: data.invoiceNo, dueDay: data.dueDay || null, invoiceId: docSnap.id }
           break
