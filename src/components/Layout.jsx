@@ -58,8 +58,6 @@ export default function Layout() {
     : hasRfid ? DEPOT_RFID_TABS : DEPOT_BASIC_TABS
   const theme = THEME[role]
   const [activeTab, setActiveTab] = useState(tabs[0]?.id || 'tagging')
-  const [codeCopied, setCodeCopied] = useState(false)
-
   // 디포: 연결된 공장명 조회
   const [connectedFactory, setConnectedFactory] = useState(null)
   useEffect(() => {
@@ -71,13 +69,6 @@ export default function Layout() {
 
   async function handleSignOut() {
     await signOut(auth)
-  }
-
-  function handleCopyCode() {
-    if (!shop?.factoryCode) return
-    navigator.clipboard.writeText(shop.factoryCode)
-    setCodeCopied(true)
-    setTimeout(() => setCodeCopied(false), 2000)
   }
 
   return (
@@ -121,21 +112,6 @@ export default function Layout() {
               </button>
             ))}
           </div>
-          {/* Factory: 공장코드 표시 */}
-          {role === 'factory' && shop?.factoryCode && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-white/50">Code:</span>
-              <span className="text-lg font-mono font-bold tracking-widest text-white bg-white/20 px-3 py-1 rounded-lg">
-                {shop.factoryCode}
-              </span>
-              <button
-                onClick={handleCopyCode}
-                className="text-xs text-white/60 hover:text-white transition-colors"
-              >
-                {codeCopied ? 'Copied!' : 'Copy'}
-              </button>
-            </div>
-          )}
           {/* Depot: 연결된 공장 표시 */}
           {role === 'depot' && connectedFactory && (
             <span className="text-sm text-white/50">

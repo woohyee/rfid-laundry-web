@@ -314,28 +314,6 @@ export default function Onboarding({ onBack }) {
                   />
                 </div>
 
-                {/* 공장코드 (factory만) */}
-                {role === 'factory' && (
-                  <div>
-                    <label className="block text-sm font-semibold mb-2">
-                      Factory Code <span className="text-zinc-400">(auto-generated, editable)</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={factoryCode}
-                      onChange={e => {
-                        setFactoryCode(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 10))
-                        setFactoryCodeEdited(true)
-                      }}
-                      placeholder="e.g. TOPHAT"
-                      maxLength={10}
-                      className="w-full px-4 py-3 text-lg font-mono tracking-wider rounded-xl border-2 border-zinc-300 focus:border-[#2563EB] focus:outline-none uppercase"
-                    />
-                    <p className="text-xs text-zinc-400 mt-1">
-                      Depots will use this code to connect to your factory.
-                    </p>
-                  </div>
-                )}
 
                 {/* 전화번호 */}
                 <div>
