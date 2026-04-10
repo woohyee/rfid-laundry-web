@@ -8,10 +8,10 @@ import { auth, db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import logo from '@/assets/logo.png'
 
-// 업체명에서 factoryCode 자동 생성 (공백/특수문자 제거, 대문자, 최대 8자)
+// 업체명에서 factoryCode 자동 생성 (공백/특수문자 제거, 대문자, 최대 10자)
 function generateFactoryCode(businessName) {
   const cleaned = (businessName || 'FACTORY').replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
-  return cleaned.slice(0, 8) || 'FACTORY'
+  return cleaned.slice(0, 10) || 'FACTORY'
 }
 
 // factoryCode 중복 체크 → 중복이면 suffix 추가
@@ -23,21 +23,21 @@ async function getUniqueFactoryCode(baseCode) {
 
   // 중복: suffix 1, 2, 3... 시도
   for (let i = 1; i <= 99; i++) {
-    const candidate = `${baseCode.slice(0, 7)}${i}`
+    const candidate = `${baseCode.slice(0, 9)}${i}`
     const check = await getDocs(
       query(collection(db, 'shops'), where('factoryCode', '==', candidate))
     )
     if (check.empty) return candidate
   }
   // 극히 드문 케이스: 랜덤 suffix
-  return `${baseCode.slice(0, 5)}${Math.floor(Math.random() * 900 + 100)}`
+  return `${baseCode.slice(0, 7)}${Math.floor(Math.random() * 900 + 100)}`
 }
 
 // 디포 업체코드 생성: TopHat001, TopHat002, ...
 async function generateDepotCode(factoryUid) {
   const factoryDoc = await getDoc(doc(db, 'shops', factoryUid))
   const factoryName = factoryDoc.exists() ? factoryDoc.data().name : 'FACTORY'
-  const prefix = (factoryName || 'FACTORY').split(/\s+/)[0].slice(0, 8)
+  const prefix = (factoryName || 'FACTORY').split(/\s+/)[0].slice(0, 10)
 
   const partnerSnap = await getDocs(
     query(collection(db, 'partnerships'), where('factoryUid', '==', factoryUid))
@@ -230,9 +230,9 @@ export default function Onboarding({ onBack }) {
                 <input
                   type="text"
                   value={codeInput}
-                  onChange={e => setCodeInput(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 8))}
+                  onChange={e => setCodeInput(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 10))}
                   placeholder="e.g. TOPHAT"
-                  maxLength={8}
+                  maxLength={10}
                   autoFocus
                   className="w-full px-4 py-4 text-2xl font-mono tracking-[0.3em] text-center rounded-xl border-2 border-zinc-300 focus:border-[#E07B0F] focus:outline-none uppercase"
                 />
@@ -324,11 +324,11 @@ export default function Onboarding({ onBack }) {
                       type="text"
                       value={factoryCode}
                       onChange={e => {
-                        setFactoryCode(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 8))
+                        setFactoryCode(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 10))
                         setFactoryCodeEdited(true)
                       }}
                       placeholder="e.g. TOPHAT"
-                      maxLength={8}
+                      maxLength={10}
                       className="w-full px-4 py-3 text-lg font-mono tracking-wider rounded-xl border-2 border-zinc-300 focus:border-[#2563EB] focus:outline-none uppercase"
                     />
                     <p className="text-xs text-zinc-400 mt-1">
