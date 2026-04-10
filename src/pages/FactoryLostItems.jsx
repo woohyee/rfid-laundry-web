@@ -80,10 +80,127 @@ export function FactoryFoundItems() {
   return <FoundItems uid={user.uid} />
 }
 
+// 디포 관리 (공장 뷰)
+export function FactoryDepots() {
+  const { user } = useAuth()
+  return <DepotsManagement uid={user.uid} />
+}
+
 // 하위 호환용
 export default function FactoryLostItems() {
   const { user } = useAuth()
   return <DepotReports uid={user.uid} />
+}
+
+// ─── Depots 관리 ────────────────────────────────────────────
+
+function DepotsManagement({ uid }) {
+  const [depots, setDepots] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [confirmDelete, setConfirmDelete] = useState(null)
+
+  const fetchDepots = useCallback(async () => {
+    setLoading(true)
+    const q = query(
+      collection(db, 'partnerships'),
+      where('factoryUid', '==', uid),
+      where('status', '==', 'active')
+    )
+    const snap = await getDocs(q)
+    const list = []
+    for (const d of snap.docs) {
+      const data = { partnershipId: d.id, ...d.data() }
+      const depotSnap = await getDocs(
+        query(collection(db, 'shops'), where('shopId', '==', data.depotUid))
+      )
+      const depotData = depotSnap.docs[0]?.data()
+      data.depotName = depotData?.name || 'Unknown'
+      data.depotPhone = depotData?.phone || ''
+      data.hasRfidReader = depotData?.hasRfidReader ?? true
+      list.push(data)
+    }
+    list.sort((a, b) => (a.depotName || '').localeCompare(b.depotName || ''))
+    setDepots(list)
+    setLoading(false)
+  }, [uid])
+
+  useEffect(() => { fetchDepots() }, [fetchDepots])
+
+  async function handleDisconnect(depot) {
+    await updateDoc(doc(db, 'partnerships', depot.partnershipId), {
+      status: 'inactive',
+    })
+    setConfirmDelete(null)
+    fetchDepots()
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-zinc-500">{depots.length} connected depots</p>
+
+      {loading ? (
+        <p className="text-zinc-400">Loading...</p>
+      ) : depots.length === 0 ? (
+        <p className="text-zinc-400 text-center py-10">No depots connected yet</p>
+      ) : (
+        <div className="space-y-2">
+          {depots.map(depot => (
+            <div key={depot.partnershipId} className="bg-white rounded-xl p-4 border border-zinc-200 flex items-center justify-between">
+              <div>
+                <p className="font-bold text-zinc-800">{depot.depotName}</p>
+                <div className="flex items-center gap-3 mt-1">
+                  {depot.depotCode && (
+                    <span className="text-xs font-mono bg-zinc-100 px-2 py-0.5 rounded">{depot.depotCode}</span>
+                  )}
+                  {depot.depotPhone && (
+                    <span className="text-xs text-zinc-400">{depot.depotPhone}</span>
+                  )}
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${depot.hasRfidReader ? 'bg-blue-100 text-blue-700' : 'bg-zinc-100 text-zinc-500'}`}>
+                    {depot.hasRfidReader ? 'RFID' : 'No RFID'}
+                  </span>
+                </div>
+                {depot.createdAt && (
+                  <p className="text-xs text-zinc-400 mt-1">Connected {formatDate(depot.createdAt)}</p>
+                )}
+              </div>
+              <button
+                onClick={() => setConfirmDelete(depot)}
+                className="text-sm text-red-400 hover:text-red-600 font-medium px-3 py-1 rounded-lg hover:bg-red-50 transition-colors"
+              >
+                Disconnect
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 연결 해제 확인 모달 */}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+            <h3 className="text-lg font-bold mb-2">Disconnect Depot?</h3>
+            <p className="text-sm text-zinc-500 mb-4">
+              <span className="font-medium text-zinc-700">{confirmDelete.depotName}</span> will no longer be connected to your factory. They won't see your Found Items or Notices.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="flex-1 py-2 rounded-lg border border-zinc-300 font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDisconnect(confirmDelete)}
+                className="flex-1 py-2 rounded-lg bg-red-500 text-white font-bold"
+              >
+                Disconnect
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 // ─── Depot Reports 탭 ───────────────────────────────────────
