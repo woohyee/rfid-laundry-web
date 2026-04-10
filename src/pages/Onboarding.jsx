@@ -47,7 +47,7 @@ async function generateDepotCode(factoryUid) {
 }
 
 export default function Onboarding({ onBack }) {
-  const { setShop } = useAuth()
+  const { setShop, setRegistering } = useAuth()
 
   // 스텝: 'role' → 'invite' (depot만) → 'profile'
   const [step, setStep] = useState('role')
@@ -100,6 +100,7 @@ export default function Onboarding({ onBack }) {
 
     setSaving(true)
     setError('')
+    setRegistering(true) // onAuthStateChanged가 shop 조회를 건너뛰게 함
     try {
       // 1. Firebase Auth 계정 생성
       const cred = await createUserWithEmailAndPassword(auth, email.trim(), password)
@@ -123,6 +124,7 @@ export default function Onboarding({ onBack }) {
         if (factorySnap.empty) {
           // 공장코드 매칭 실패 → Auth 계정 삭제
           await cred.user.delete()
+          setRegistering(false)
           setError('Invalid factory code. Please check and try again.')
           setSaving(false)
           return
@@ -163,14 +165,17 @@ export default function Onboarding({ onBack }) {
           try {
             await cred.user.delete()
           } catch { /* cleanup 실패는 무시 */ }
+          setRegistering(false)
           setError('Failed to connect to factory. Please try again.')
           setSaving(false)
           return
         }
       }
 
+      setRegistering(false)
       setShop(shopData)
     } catch (err) {
+      setRegistering(false)
       if (err.code === 'auth/email-already-in-use') setError('Email already in use.')
       else if (err.code === 'auth/weak-password') setError('Password must be at least 6 characters.')
       else setError('Registration failed. Please try again.')
