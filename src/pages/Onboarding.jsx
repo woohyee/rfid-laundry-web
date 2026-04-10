@@ -1,14 +1,36 @@
 import { useState } from 'react'
 import {
-  doc, setDoc, addDoc, updateDoc, collection, query, where, getDocs,
+  doc, setDoc, addDoc, deleteDoc, getDoc, collection, query, where, getDocs,
   serverTimestamp
 } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { createUserWithEmailAndPassword } from 'firebase/auth'
+import { auth, db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import logo from '@/assets/logo.png'
 
-export default function Onboarding() {
-  const { user, setShop } = useAuth()
+// 공장명에서 업체코드 접두어 추출 (첫 단어, 최대 8자)
+function extractPrefix(factoryName) {
+  const firstWord = (factoryName || 'FACTORY').split(/\s+/)[0]
+  return firstWord.slice(0, 8)
+}
+
+// 업체코드 생성: TopHat001, TopHat002, ...
+async function generateDepotCode(factoryUid) {
+  // 공장 정보에서 이름 가져오기
+  const factoryDoc = await getDoc(doc(db, 'shops', factoryUid))
+  const factoryName = factoryDoc.exists() ? factoryDoc.data().name : 'FACTORY'
+  const prefix = extractPrefix(factoryName)
+
+  // 해당 공장 소속 디포 수 조회
+  const partnerSnap = await getDocs(
+    query(collection(db, 'partnerships'), where('factoryUid', '==', factoryUid))
+  )
+  const num = partnerSnap.size + 1
+  return `${prefix}${String(num).padStart(3, '0')}`
+}
+
+export default function Onboarding({ onBack }) {
+  const { setShop } = useAuth()
 
   // 스텝: 'role' → 'invite' (depot만) → 'profile'
   const [step, setStep] = useState('role')
@@ -19,6 +41,10 @@ export default function Onboarding() {
   const [codeError, setCodeError] = useState('')
   const [validatingCode, setValidatingCode] = useState(false)
   const [validatedCode, setValidatedCode] = useState(null) // { docId, factoryUid }
+
+  // 계정 정보
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
 
   // 프로필
   const [name, setName] = useState('')
@@ -77,40 +103,57 @@ export default function Onboarding() {
     }
   }
 
-  // 등록
+  // 통합 등록: Auth 계정 생성 + shop 문서 + partnership + 초대코드 삭제
   async function handleSubmit(e) {
     e.preventDefault()
+    if (!email.trim()) return setError('Email is required')
+    if (password.length < 6) return setError('Password must be at least 6 characters')
     if (!name.trim()) return setError('Business name is required')
     if (!phone.trim()) return setError('Phone number is required')
 
     setSaving(true)
     setError('')
     try {
+      // 1. Firebase Auth 계정 생성
+      const cred = await createUserWithEmailAndPassword(auth, email.trim(), password)
+      const uid = cred.user.uid
+
+      // 2. 디포: 업체코드 생성
+      let depotCode = null
+      if (role === 'depot' && validatedCode) {
+        depotCode = await generateDepotCode(validatedCode.factoryUid)
+      }
+
+      // 3. shop 문서 생성
       const shopData = {
         name: name.trim(),
         phone: phone.trim(),
         role,
         address: address.trim() || null,
         hasRfidReader: role === 'depot' ? hasRfidReader : null,
-        shopId: user.uid,
+        depotCode: depotCode,
+        shopId: uid,
         createdAt: serverTimestamp(),
       }
-      await setDoc(doc(db, 'shops', user.uid), shopData)
+      await setDoc(doc(db, 'shops', uid), shopData)
 
-      // 디포: 파트너십 자동 생성 + 코드 사용 처리
+      // 4. 디포: 파트너십 생성 + 초대코드 삭제
       if (role === 'depot' && validatedCode) {
         await addDoc(collection(db, 'partnerships'), {
-          depotUid: user.uid,
+          depotUid: uid,
           factoryUid: validatedCode.factoryUid,
+          depotCode,
           status: 'active',
           createdAt: serverTimestamp(),
         })
-        await updateDoc(doc(db, 'inviteCodes', validatedCode.docId), { used: true })
+        await deleteDoc(doc(db, 'inviteCodes', validatedCode.docId))
       }
 
       setShop(shopData)
-    } catch {
-      setError('Registration failed. Please try again.')
+    } catch (err) {
+      if (err.code === 'auth/email-already-in-use') setError('Email already in use.')
+      else if (err.code === 'auth/weak-password') setError('Password must be at least 6 characters.')
+      else setError('Registration failed. Please try again.')
       setSaving(false)
     }
   }
@@ -147,6 +190,14 @@ export default function Onboarding() {
                   <p className="text-sm text-zinc-400 font-normal mt-1">Laundry processing plant</p>
                 </button>
               </div>
+              {onBack && (
+                <button
+                  onClick={onBack}
+                  className="w-full py-2 text-sm text-zinc-400 hover:text-zinc-600 mt-4"
+                >
+                  Back to Sign In
+                </button>
+              )}
             </>
           )}
 
@@ -200,6 +251,37 @@ export default function Onboarding() {
               <p className="text-zinc-500 mb-6">Fill in your business details.</p>
 
               <form onSubmit={handleSubmit} className="space-y-5">
+                {/* 이메일 */}
+                <div>
+                  <label className="block text-sm font-semibold mb-2">
+                    Email <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="shop@example.com"
+                    autoFocus
+                    className="w-full px-4 py-3 text-lg rounded-xl border-2 border-zinc-300 focus:border-[#E07B0F] focus:outline-none"
+                  />
+                </div>
+
+                {/* 비밀번호 */}
+                <div>
+                  <label className="block text-sm font-semibold mb-2">
+                    Password <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    className="w-full px-4 py-3 text-lg rounded-xl border-2 border-zinc-300 focus:border-[#E07B0F] focus:outline-none"
+                  />
+                </div>
+
+                <hr className="border-zinc-200" />
+
                 {/* 업체명 */}
                 <div>
                   <label className="block text-sm font-semibold mb-2">
@@ -210,7 +292,6 @@ export default function Onboarding() {
                     value={name}
                     onChange={e => setName(e.target.value)}
                     placeholder="e.g. Dodo Cleaners"
-                    autoFocus
                     className="w-full px-4 py-3 text-lg rounded-xl border-2 border-zinc-300 focus:border-[#E07B0F] focus:outline-none"
                   />
                 </div>

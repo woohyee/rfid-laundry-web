@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { Button } from '@/components/ui/button'
-import SignUp from '@/pages/SignUp'
+import Onboarding from '@/pages/Onboarding'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -11,7 +11,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [showSignUp, setShowSignUp] = useState(false)
 
-  if (showSignUp) return <SignUp onBack={() => setShowSignUp(false)} />
+  if (showSignUp) return <Onboarding onBack={() => setShowSignUp(false)} />
 
   async function handleLogin(e) {
     e.preventDefault()
