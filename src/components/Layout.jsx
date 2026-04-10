@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext'
 import Tagging from '@/pages/Tagging'
 import Receiving from '@/pages/Receiving'
 import Lookup from '@/pages/Lookup'
-import FactoryLostItems from '@/pages/FactoryLostItems'
+import { FactoryDepotReports, FactoryFoundItems } from '@/pages/FactoryLostItems'
 import LostItems from '@/pages/LostItems'
 import Announcements from '@/pages/Announcements'
 
@@ -27,7 +27,8 @@ const DEPOT_BASIC_TABS = [
 ]
 
 const FACTORY_TABS = [
-  { id: 'lostItems', label: 'Lost Items' },
+  { id: 'depotReports', label: 'Depot Reports' },
+  { id: 'foundItems', label: 'Found Items' },
   { id: 'announcements', label: 'Notice' },
 ]
 
@@ -137,7 +138,8 @@ export default function Layout() {
           </>
         )}
         {activeTab === 'lostItems' && role === 'depot' && <LostItems />}
-        {activeTab === 'lostItems' && role === 'factory' && <FactoryLostItems />}
+        {activeTab === 'depotReports' && role === 'factory' && <FactoryDepotReports />}
+        {activeTab === 'foundItems' && role === 'factory' && <FactoryFoundItems />}
         {activeTab === 'announcements' && <Announcements />}
       </main>
     </div>

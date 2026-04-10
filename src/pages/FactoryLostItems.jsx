@@ -8,11 +8,6 @@ import { uploadPhoto } from '@/lib/storage'
 import { useAuth } from '@/context/AuthContext'
 import PhotoCapture from '@/components/PhotoCapture'
 
-const SUB_TABS = [
-  { id: 'depotReports', label: 'Depot Reports' },
-  { id: 'foundItems', label: 'Found Items' },
-  { id: 'delivery', label: 'Delivery Plan' },
-]
 
 // 경과일 기준 색상
 function agingColor(createdAt) {
@@ -73,34 +68,22 @@ const STATUS_COLORS = {
   discarded: 'bg-zinc-100 text-zinc-500',
 }
 
+// 디포 분실 신고 목록 (공장 뷰)
+export function FactoryDepotReports() {
+  const { user } = useAuth()
+  return <DepotReports uid={user.uid} />
+}
+
+// 미아 옷 등록/관리 (공장 뷰)
+export function FactoryFoundItems() {
+  const { user } = useAuth()
+  return <FoundItems uid={user.uid} />
+}
+
+// 하위 호환용
 export default function FactoryLostItems() {
   const { user } = useAuth()
-  const [subTab, setSubTab] = useState('depotReports')
-
-  return (
-    <div className="space-y-4">
-      {/* 서브탭 */}
-      <div className="flex gap-2">
-        {SUB_TABS.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setSubTab(tab.id)}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${
-              subTab === tab.id
-                ? 'bg-[#E07B0F] text-white'
-                : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {subTab === 'depotReports' && <DepotReports uid={user.uid} />}
-      {subTab === 'foundItems' && <FoundItems uid={user.uid} />}
-      {subTab === 'delivery' && <DeliveryPlan uid={user.uid} />}
-    </div>
-  )
+  return <DepotReports uid={user.uid} />
 }
 
 // ─── Depot Reports 탭 ───────────────────────────────────────
