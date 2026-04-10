@@ -2,9 +2,10 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/context/AuthContext'
 import Login from '@/pages/Login'
 import Layout from '@/components/Layout'
+import Onboarding from '@/pages/Onboarding'
 
 function AppRoutes() {
-  const { user, loading } = useAuth()
+  const { user, shop, loading } = useAuth()
 
   if (loading) {
     return (
@@ -18,6 +19,15 @@ function AppRoutes() {
     return (
       <Routes>
         <Route path="*" element={<Login />} />
+      </Routes>
+    )
+  }
+
+  // 로그인 됐지만 shop 문서 없음 → 온보딩
+  if (!shop) {
+    return (
+      <Routes>
+        <Route path="*" element={<Onboarding />} />
       </Routes>
     )
   }

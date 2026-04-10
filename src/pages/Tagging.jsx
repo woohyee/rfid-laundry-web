@@ -7,7 +7,6 @@ import ErrorBanner from '@/components/ErrorBanner'
 
 const STEPS = {
   INVOICE: 'invoice',
-  DUE_DAY: 'dueDay',
   SHIRT_COUNT: 'shirtCount',
   SHIRT_SCAN: 'shirtScan',
   DC_COUNT: 'dcCount',
@@ -15,7 +14,7 @@ const STEPS = {
 }
 
 // 단계 순서 (비교용)
-const STEP_ORDER = [STEPS.INVOICE, STEPS.DUE_DAY, STEPS.SHIRT_COUNT, STEPS.SHIRT_SCAN, STEPS.DC_COUNT, STEPS.DC_SCAN]
+const STEP_ORDER = [STEPS.INVOICE, STEPS.SHIRT_COUNT, STEPS.SHIRT_SCAN, STEPS.DC_COUNT, STEPS.DC_SCAN]
 function stepIndex(s) { return STEP_ORDER.indexOf(s) }
 function stepGte(a, b) { return stepIndex(a) >= stepIndex(b) }
 function stepGt(a, b) { return stepIndex(a) > stepIndex(b) }
@@ -35,6 +34,7 @@ export default function Tagging() {
   const [editingTag, setEditingTag] = useState(null) // { type: 'shirt'|'dc', index: number, value: string }
   const [toast, setToast] = useState(null)
   const [dueDay, setDueDay] = useState('')
+  const [invoiceConfirmed, setInvoiceConfirmed] = useState(false)
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
 
@@ -54,8 +54,7 @@ export default function Tagging() {
 
   function goBack() {
     setError(null)
-    if (step === STEPS.DUE_DAY) setStep(STEPS.INVOICE)
-    else if (step === STEPS.SHIRT_COUNT) setStep(STEPS.DUE_DAY)
+    if (step === STEPS.SHIRT_COUNT) { setDueDay(''); setStep(STEPS.INVOICE) }
     else if (step === STEPS.SHIRT_SCAN) { setShirtTags([]); setStep(STEPS.SHIRT_COUNT) }
     else if (step === STEPS.DC_COUNT) {
       const shirtNum = parseInt(shirtCount, 10) || 0
@@ -83,7 +82,7 @@ export default function Tagging() {
       setError('Check failed: ' + e.message)
       return
     }
-    setStep(STEPS.DUE_DAY)
+    setInvoiceConfirmed(true)
   }
 
   function handleDueDaySelect(day) {
@@ -210,6 +209,7 @@ export default function Tagging() {
 
   function resetAll() {
     setInvoiceNo('')
+    setInvoiceConfirmed(false)
     setDueDay('')
     setShirtCount('')
     setDcCount('')
@@ -285,55 +285,60 @@ export default function Tagging() {
 
       <ErrorBanner message={error} onClose={() => setError(null)} />
 
-      {/* 인보이스 번호 */}
+      {/* 인보이스 번호 + 요일 선택 (통합) */}
       <div className={step === STEPS.INVOICE ? activeCard : inactiveCard}>
-        <div className={`${labelClass} mb-2`}>Invoice #</div>
-        <div className="relative">
-          <input
-            ref={invoiceRef}
-            type="text"
-            value={invoiceNo}
-            onChange={e => setInvoiceNo(e.target.value)}
-            onKeyDown={handleInvoiceKey}
-            placeholder="Invoice number..."
-            disabled={step !== STEPS.INVOICE}
-            className={step === STEPS.INVOICE ? activeInput + ' pr-10' : disabledInput}
-          />
-          {step === STEPS.INVOICE && invoiceNo && (
-            <button
-              onClick={() => { setInvoiceNo(''); invoiceRef.current?.focus() }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 text-xl font-bold"
-            >✕</button>
+        <div className="flex justify-between items-center mb-2">
+          <div className={labelClass}>Invoice #</div>
+          {step === STEPS.INVOICE && invoiceConfirmed && (
+            <button onClick={() => { setInvoiceConfirmed(false); setDueDay('') }} className="text-xs text-gray-400 hover:text-gray-600">← Back</button>
           )}
         </div>
-      </div>
 
-      {/* 요일 선택 */}
-      {stepGte(step, STEPS.DUE_DAY) && (
-        <div className={step === STEPS.DUE_DAY ? activeCard : inactiveCard}>
-          <div className="flex justify-between items-center mb-3">
-            <div className={labelClass}>Due Day</div>
-            {step === STEPS.DUE_DAY && (
-              <button onClick={goBack} className="text-xs text-gray-400 hover:text-gray-600">← Back</button>
+        {/* 인보이스 입력 */}
+        {step === STEPS.INVOICE && !invoiceConfirmed ? (
+          <div className="relative">
+            <input
+              ref={invoiceRef}
+              type="text"
+              value={invoiceNo}
+              onChange={e => setInvoiceNo(e.target.value)}
+              onKeyDown={handleInvoiceKey}
+              placeholder="Invoice number..."
+              className={activeInput + ' pr-10'}
+            />
+            {invoiceNo && (
+              <button
+                onClick={() => { setInvoiceNo(''); invoiceRef.current?.focus() }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 text-xl font-bold"
+              >✕</button>
             )}
           </div>
-          {step === STEPS.DUE_DAY ? (
-            <div className="flex gap-2 flex-wrap">
-              {['MON','TUE','WED','THU','FRI','SAT'].map(day => (
-                <button
-                  key={day}
-                  onClick={() => handleDueDaySelect(day)}
-                  className="flex-1 min-w-[60px] py-3 rounded-lg text-xl font-bold border-2 border-[#E4E2DC] hover:border-[#E07B0F] hover:text-[#E07B0F] transition-colors"
-                >
-                  {day}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className={disabledInput}>{dueDay}</div>
-          )}
-        </div>
-      )}
+        ) : (
+          <div className={disabledInput}>{invoiceNo}</div>
+        )}
+
+        {/* 요일 선택 (인보이스 확인 후 표시) */}
+        {(invoiceConfirmed || step !== STEPS.INVOICE) && (
+          <div className="mt-3">
+            <div className={`${labelClass} mb-2`}>Due Day</div>
+            {step === STEPS.INVOICE && !dueDay ? (
+              <div className="flex gap-2 flex-wrap">
+                {['MON','TUE','WED','THU','FRI','SAT'].map(day => (
+                  <button
+                    key={day}
+                    onClick={() => handleDueDaySelect(day)}
+                    className="flex-1 min-w-[60px] py-3 rounded-lg text-xl font-bold border-2 border-[#E4E2DC] hover:border-[#E07B0F] hover:text-[#E07B0F] transition-colors"
+                  >
+                    {day}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className={disabledInput}>{dueDay}</div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* 셔츠 수량 */}
       {stepGte(step, STEPS.SHIRT_COUNT) && (
