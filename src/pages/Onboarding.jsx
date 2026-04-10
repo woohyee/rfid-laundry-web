@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  doc, setDoc, addDoc, deleteDoc, getDoc, collection, query, where, getDocs,
+  doc, setDoc, addDoc, getDoc, collection, query, where, getDocs,
   serverTimestamp
 } from 'firebase/firestore'
 import { createUserWithEmailAndPassword } from 'firebase/auth'
@@ -8,20 +8,37 @@ import { auth, db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import logo from '@/assets/logo.png'
 
-// 공장명에서 업체코드 접두어 추출 (첫 단어, 최대 8자)
-function extractPrefix(factoryName) {
-  const firstWord = (factoryName || 'FACTORY').split(/\s+/)[0]
-  return firstWord.slice(0, 8)
+// 업체명에서 factoryCode 자동 생성 (공백/특수문자 제거, 대문자, 최대 8자)
+function generateFactoryCode(businessName) {
+  const cleaned = (businessName || 'FACTORY').replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
+  return cleaned.slice(0, 8) || 'FACTORY'
 }
 
-// 업체코드 생성: TopHat001, TopHat002, ...
+// factoryCode 중복 체크 → 중복이면 suffix 추가
+async function getUniqueFactoryCode(baseCode) {
+  const snap = await getDocs(
+    query(collection(db, 'shops'), where('factoryCode', '==', baseCode))
+  )
+  if (snap.empty) return baseCode
+
+  // 중복: suffix 1, 2, 3... 시도
+  for (let i = 1; i <= 99; i++) {
+    const candidate = `${baseCode.slice(0, 7)}${i}`
+    const check = await getDocs(
+      query(collection(db, 'shops'), where('factoryCode', '==', candidate))
+    )
+    if (check.empty) return candidate
+  }
+  // 극히 드문 케이스: 랜덤 suffix
+  return `${baseCode.slice(0, 5)}${Math.floor(Math.random() * 900 + 100)}`
+}
+
+// 디포 업체코드 생성: TopHat001, TopHat002, ...
 async function generateDepotCode(factoryUid) {
-  // 공장 정보에서 이름 가져오기
   const factoryDoc = await getDoc(doc(db, 'shops', factoryUid))
   const factoryName = factoryDoc.exists() ? factoryDoc.data().name : 'FACTORY'
-  const prefix = extractPrefix(factoryName)
+  const prefix = (factoryName || 'FACTORY').split(/\s+/)[0].slice(0, 8)
 
-  // 해당 공장 소속 디포 수 조회
   const partnerSnap = await getDocs(
     query(collection(db, 'partnerships'), where('factoryUid', '==', factoryUid))
   )
@@ -36,15 +53,16 @@ export default function Onboarding({ onBack }) {
   const [step, setStep] = useState('role')
   const [role, setRole] = useState('')
 
-  // 초대코드 (depot만)
+  // 공장코드 입력 (depot만)
   const [codeInput, setCodeInput] = useState('')
-  const [codeError, setCodeError] = useState('')
-  const [validatingCode, setValidatingCode] = useState(false)
-  const [validatedCode, setValidatedCode] = useState(null) // { docId, factoryUid }
 
   // 계정 정보
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+
+  // 공장코드 (factory만)
+  const [factoryCode, setFactoryCode] = useState('')
+  const [factoryCodeEdited, setFactoryCodeEdited] = useState(false)
 
   // 프로필
   const [name, setName] = useState('')
@@ -53,6 +71,14 @@ export default function Onboarding({ onBack }) {
   const [hasRfidReader, setHasRfidReader] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  // 공장: Business Name 변경 시 factoryCode 자동 생성
+  function handleNameChange(val) {
+    setName(val)
+    if (role === 'factory' && !factoryCodeEdited) {
+      setFactoryCode(generateFactoryCode(val))
+    }
+  }
 
   // 역할 선택 후
   function handleRoleSelect(r) {
@@ -64,46 +90,7 @@ export default function Onboarding({ onBack }) {
     }
   }
 
-  // 초대코드 검증
-  async function handleCodeValidate(e) {
-    e.preventDefault()
-    const code = codeInput.trim().toUpperCase()
-    if (!code) return
-
-    setValidatingCode(true)
-    setCodeError('')
-    try {
-      const q = query(
-        collection(db, 'inviteCodes'),
-        where('code', '==', code),
-        where('used', '==', false)
-      )
-      const snap = await getDocs(q)
-      if (snap.empty) {
-        setCodeError('Invalid or expired code')
-        setValidatingCode(false)
-        return
-      }
-
-      const codeDoc = snap.docs[0]
-      const codeData = codeDoc.data()
-
-      if (codeData.expiresAt.toDate() < new Date()) {
-        setCodeError('This code has expired')
-        setValidatingCode(false)
-        return
-      }
-
-      setValidatedCode({ docId: codeDoc.id, factoryUid: codeData.factoryUid })
-      setStep('profile')
-    } catch {
-      setCodeError('Verification failed. Please try again.')
-    } finally {
-      setValidatingCode(false)
-    }
-  }
-
-  // 통합 등록: Auth 계정 생성 + shop 문서 + partnership + 초대코드 삭제
+  // 통합 등록: Auth 계정 생성 + shop 문서 + partnership
   async function handleSubmit(e) {
     e.preventDefault()
     if (!email.trim()) return setError('Email is required')
@@ -118,35 +105,68 @@ export default function Onboarding({ onBack }) {
       const cred = await createUserWithEmailAndPassword(auth, email.trim(), password)
       const uid = cred.user.uid
 
-      // 2. 디포: 업체코드 생성
-      let depotCode = null
-      if (role === 'depot' && validatedCode) {
-        depotCode = await generateDepotCode(validatedCode.factoryUid)
+      // 2. 공장: factoryCode 중복 체크 + 확정
+      let finalFactoryCode = null
+      if (role === 'factory') {
+        finalFactoryCode = await getUniqueFactoryCode(factoryCode || generateFactoryCode(name))
       }
 
-      // 3. shop 문서 생성
+      // 3. 디포: factoryCode로 공장 조회 + 업체코드 생성
+      let matchedFactory = null
+      let depotCode = null
+      if (role === 'depot') {
+        const factorySnap = await getDocs(
+          query(collection(db, 'shops'),
+            where('factoryCode', '==', codeInput.trim().toUpperCase()),
+            where('role', '==', 'factory'))
+        )
+        if (factorySnap.empty) {
+          // 공장코드 매칭 실패 → Auth 계정 삭제
+          await cred.user.delete()
+          setError('Invalid factory code. Please check and try again.')
+          setSaving(false)
+          return
+        }
+        matchedFactory = { uid: factorySnap.docs[0].id, ...factorySnap.docs[0].data() }
+        depotCode = await generateDepotCode(matchedFactory.uid)
+      }
+
+      // 4. shop 문서 생성
       const shopData = {
         name: name.trim(),
         phone: phone.trim(),
         role,
         address: address.trim() || null,
-        hasRfidReader: role === 'depot' ? hasRfidReader : null,
-        depotCode: depotCode,
+        ...(role === 'factory' && { factoryCode: finalFactoryCode }),
+        ...(role === 'depot' && {
+          hasRfidReader,
+          depotCode,
+          factoryUid: matchedFactory?.uid || null,
+        }),
         shopId: uid,
         createdAt: serverTimestamp(),
       }
       await setDoc(doc(db, 'shops', uid), shopData)
 
-      // 4. 디포: 파트너십 생성 + 초대코드 삭제
-      if (role === 'depot' && validatedCode) {
-        await addDoc(collection(db, 'partnerships'), {
-          depotUid: uid,
-          factoryUid: validatedCode.factoryUid,
-          depotCode,
-          status: 'active',
-          createdAt: serverTimestamp(),
-        })
-        await deleteDoc(doc(db, 'inviteCodes', validatedCode.docId))
+      // 5. 디포: 파트너십 생성
+      if (role === 'depot' && matchedFactory) {
+        try {
+          await addDoc(collection(db, 'partnerships'), {
+            depotUid: uid,
+            factoryUid: matchedFactory.uid,
+            depotCode,
+            status: 'active',
+            createdAt: serverTimestamp(),
+          })
+        } catch {
+          // partnership 실패 → Auth + shop 정리
+          try {
+            await cred.user.delete()
+          } catch { /* cleanup 실패는 무시 */ }
+          setError('Failed to connect to factory. Please try again.')
+          setSaving(false)
+          return
+        }
       }
 
       setShop(shopData)
@@ -201,39 +221,37 @@ export default function Onboarding({ onBack }) {
             </>
           )}
 
-          {/* 스텝 2: 초대코드 (depot만) */}
+          {/* 스텝 2: 공장코드 입력 (depot만) */}
           {step === 'invite' && (
             <>
-              <h2 className="text-xl font-bold mb-1">Enter Invite Code</h2>
+              <h2 className="text-xl font-bold mb-1">Enter Factory Code</h2>
               <p className="text-zinc-500 mb-6">Enter the code provided by your factory partner.</p>
-              <form onSubmit={handleCodeValidate} className="space-y-4">
+              <div className="space-y-4">
                 <input
                   type="text"
                   value={codeInput}
-                  onChange={e => setCodeInput(e.target.value.toUpperCase())}
-                  placeholder="e.g. ABC123"
-                  maxLength={6}
+                  onChange={e => setCodeInput(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 8))}
+                  placeholder="e.g. TOPHAT"
+                  maxLength={8}
                   autoFocus
                   className="w-full px-4 py-4 text-2xl font-mono tracking-[0.3em] text-center rounded-xl border-2 border-zinc-300 focus:border-[#E07B0F] focus:outline-none uppercase"
                 />
-                {codeError && (
-                  <p className="text-red-500 text-sm font-medium">{codeError}</p>
-                )}
                 <button
-                  type="submit"
-                  disabled={validatingCode || !codeInput.trim()}
+                  type="button"
+                  onClick={() => { if (codeInput.trim()) setStep('profile') }}
+                  disabled={!codeInput.trim()}
                   className="w-full py-4 text-xl font-bold rounded-xl bg-[#E07B0F] text-white hover:bg-[#c96a0d] disabled:opacity-50 transition-colors"
                 >
-                  {validatingCode ? 'Verifying...' : 'Verify Code'}
+                  Continue
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setStep('role'); setRole('') }}
+                  onClick={() => { setStep('role'); setRole(''); setCodeInput('') }}
                   className="w-full py-2 text-sm text-zinc-400 hover:text-zinc-600"
                 >
                   Back
                 </button>
-              </form>
+              </div>
             </>
           )}
 
@@ -290,11 +308,34 @@ export default function Onboarding({ onBack }) {
                   <input
                     type="text"
                     value={name}
-                    onChange={e => setName(e.target.value)}
+                    onChange={e => handleNameChange(e.target.value)}
                     placeholder="e.g. Dodo Cleaners"
                     className="w-full px-4 py-3 text-lg rounded-xl border-2 border-zinc-300 focus:border-[#E07B0F] focus:outline-none"
                   />
                 </div>
+
+                {/* 공장코드 (factory만) */}
+                {role === 'factory' && (
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">
+                      Factory Code <span className="text-zinc-400">(auto-generated, editable)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={factoryCode}
+                      onChange={e => {
+                        setFactoryCode(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 8))
+                        setFactoryCodeEdited(true)
+                      }}
+                      placeholder="e.g. TOPHAT"
+                      maxLength={8}
+                      className="w-full px-4 py-3 text-lg font-mono tracking-wider rounded-xl border-2 border-zinc-300 focus:border-[#2563EB] focus:outline-none uppercase"
+                    />
+                    <p className="text-xs text-zinc-400 mt-1">
+                      Depots will use this code to connect to your factory.
+                    </p>
+                  </div>
+                )}
 
                 {/* 전화번호 */}
                 <div>
@@ -384,6 +425,8 @@ export default function Onboarding({ onBack }) {
                     } else {
                       setStep('role')
                       setRole('')
+                      setFactoryCode('')
+                      setFactoryCodeEdited(false)
                     }
                   }}
                   className="w-full py-2 text-sm text-zinc-400 hover:text-zinc-600"

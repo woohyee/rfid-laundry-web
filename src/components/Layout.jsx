@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import logo from '@/assets/logo.png'
 import { signOut } from 'firebase/auth'
 import { auth, db } from '@/lib/firebase'
-import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore'
+import { doc, getDoc } from 'firebase/firestore'
 import { useAuth } from '@/context/AuthContext'
 import Tagging from '@/pages/Tagging'
 import Receiving from '@/pages/Receiving'
@@ -49,14 +49,6 @@ const THEME = {
   },
 }
 
-// 초대 코드 생성 (6자리 영숫자)
-function generateCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  let code = ''
-  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)]
-  return code
-}
-
 export default function Layout() {
   const { user, shop } = useAuth()
   const role = shop?.role || 'depot'
@@ -66,26 +58,26 @@ export default function Layout() {
     : hasRfid ? DEPOT_RFID_TABS : DEPOT_BASIC_TABS
   const theme = THEME[role]
   const [activeTab, setActiveTab] = useState(tabs[0]?.id || 'tagging')
-  const [inviteCode, setInviteCode] = useState(null)
-  const [generatingCode, setGeneratingCode] = useState(false)
+  const [codeCopied, setCodeCopied] = useState(false)
+
+  // 디포: 연결된 공장명 조회
+  const [connectedFactory, setConnectedFactory] = useState(null)
+  useEffect(() => {
+    if (role !== 'depot' || !shop?.factoryUid) return
+    getDoc(doc(db, 'shops', shop.factoryUid)).then(snap => {
+      if (snap.exists()) setConnectedFactory(snap.data().name)
+    }).catch(() => { /* 공장명 조회 실패는 UI에 표시 안 함 */ })
+  }, [role, shop?.factoryUid])
 
   async function handleSignOut() {
     await signOut(auth)
   }
 
-  async function handleGenerateCode() {
-    setGeneratingCode(true)
-    const code = generateCode()
-    const expiresAt = Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000))
-    await addDoc(collection(db, 'inviteCodes'), {
-      code,
-      factoryUid: user.uid,
-      expiresAt,
-      used: false,
-      createdAt: serverTimestamp(),
-    })
-    setInviteCode(code)
-    setGeneratingCode(false)
+  function handleCopyCode() {
+    if (!shop?.factoryCode) return
+    navigator.clipboard.writeText(shop.factoryCode)
+    setCodeCopied(true)
+    setTimeout(() => setCodeCopied(false), 2000)
   }
 
   return (
@@ -129,35 +121,26 @@ export default function Layout() {
               </button>
             ))}
           </div>
-          {/* Factory: 초대코드 생성 */}
-          {role === 'factory' && (
-            inviteCode ? (
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-mono font-bold tracking-widest text-white bg-white/20 px-3 py-1 rounded-lg">
-                  {inviteCode}
-                </span>
-                <button
-                  onClick={() => { navigator.clipboard.writeText(inviteCode) }}
-                  className="text-xs text-white/60 hover:text-white"
-                >
-                  Copy
-                </button>
-                <button
-                  onClick={handleGenerateCode}
-                  className="text-xs text-white/60 hover:text-white"
-                >
-                  New
-                </button>
-              </div>
-            ) : (
+          {/* Factory: 공장코드 표시 */}
+          {role === 'factory' && shop?.factoryCode && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-white/50">Code:</span>
+              <span className="text-lg font-mono font-bold tracking-widest text-white bg-white/20 px-3 py-1 rounded-lg">
+                {shop.factoryCode}
+              </span>
               <button
-                onClick={handleGenerateCode}
-                disabled={generatingCode}
-                className="text-sm font-bold px-4 py-2 rounded-lg transition-colors border border-white/30 text-white/70 hover:bg-white/10 disabled:opacity-50"
+                onClick={handleCopyCode}
+                className="text-xs text-white/60 hover:text-white transition-colors"
               >
-                {generatingCode ? '...' : 'Invite Code'}
+                {codeCopied ? 'Copied!' : 'Copy'}
               </button>
-            )
+            </div>
+          )}
+          {/* Depot: 연결된 공장 표시 */}
+          {role === 'depot' && connectedFactory && (
+            <span className="text-sm text-white/50">
+              Connected to <span className="text-white/80 font-medium">{connectedFactory}</span>
+            </span>
           )}
           <button
             onClick={handleSignOut}
