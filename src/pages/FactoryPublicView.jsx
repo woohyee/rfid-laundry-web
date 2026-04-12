@@ -27,9 +27,7 @@ export default function FactoryPublicView() {
   const [reports, setReports] = useState([])
   const [loading, setLoading] = useState(true)
   const [depotName, setDepotName] = useState('')
-  const [myName, setMyName] = useState(() => localStorage.getItem('factoryName') || '')
-  const [showNamePrompt, setShowNamePrompt] = useState(false)
-  const [pendingReportId, setPendingReportId] = useState(null)
+  const myName = 'Factory'
 
   // 디포 이름 조회
   useEffect(() => {
@@ -56,30 +54,9 @@ export default function FactoryPublicView() {
 
   function handleClose() {
     window.close()
-    // window.close가 안 되면 (직접 URL 입력한 경우) 안내
     setTimeout(() => {
       document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#999"><p>You can close this tab now.</p></div>'
     }, 300)
-  }
-
-  // 이름 입력 후 코멘트 저장
-  function handleNameSubmit(name) {
-    const trimmed = name.trim()
-    if (!trimmed) return
-    setMyName(trimmed)
-    localStorage.setItem('factoryName', trimmed)
-    setShowNamePrompt(false)
-    if (pendingReportId) {
-      setPendingReportId(null)
-    }
-  }
-
-  // 코멘트 시도 → 이름 없으면 먼저 물어봄
-  function requestReply(reportId) {
-    if (!myName) {
-      setPendingReportId(reportId)
-      setShowNamePrompt(true)
-    }
   }
 
   const activeReports = reports.filter(r => r.status !== 'resolved')
@@ -126,25 +103,18 @@ export default function FactoryPublicView() {
                 report={report}
                 depotName={depotName}
                 myName={myName}
-                onRequestName={() => requestReply(report.id)}
+                myName={myName}
               />
             ))}
           </div>
         )}
       </main>
 
-      {/* 이름 입력 모달 */}
-      {showNamePrompt && (
-        <NamePrompt
-          onSubmit={handleNameSubmit}
-          onCancel={() => { setShowNamePrompt(false); setPendingReportId(null) }}
-        />
-      )}
     </div>
   )
 }
 
-function ReportCard({ report, depotName, myName, onRequestName }) {
+function ReportCard({ report, depotName, myName }) {
   const [comment, setComment] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -152,7 +122,6 @@ function ReportCard({ report, depotName, myName, onRequestName }) {
 
   async function handleAddComment() {
     if (!comment.trim()) return
-    if (!myName) { onRequestName(); return }
     setSaving(true)
     setError('')
     try {
@@ -241,41 +210,6 @@ function ReportCard({ report, depotName, myName, onRequestName }) {
           </div>
         )}
         {error && <p className="text-red-500 text-[11px] mt-1">{error}</p>}
-      </div>
-    </div>
-  )
-}
-
-// 처음 코멘트 시 이름 한 번만 입력
-function NamePrompt({ onSubmit, onCancel }) {
-  const [name, setName] = useState('')
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50">
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl p-4 w-full sm:max-w-sm">
-        <h3 className="text-base font-bold mb-2">What's your name?</h3>
-        <p className="text-xs text-zinc-500 mb-3">This will be shown with your replies.</p>
-        <input
-          type="text"
-          value={name}
-          onChange={e => setName(e.target.value)}
-          placeholder="e.g. Tophat Cleaners"
-          autoFocus
-          className="w-full px-3 py-2 rounded-lg border border-zinc-300 text-sm focus:border-[#2563EB] focus:outline-none mb-3"
-          onKeyDown={e => { if (e.key === 'Enter') onSubmit(name) }}
-        />
-        <div className="flex gap-2">
-          <button onClick={onCancel} className="flex-1 py-2 rounded-lg border border-zinc-300 text-sm font-medium">
-            Cancel
-          </button>
-          <button
-            onClick={() => onSubmit(name)}
-            disabled={!name.trim()}
-            className="flex-1 py-2 rounded-lg bg-[#2563EB] text-white text-sm font-bold disabled:opacity-50"
-          >
-            Save
-          </button>
-        </div>
       </div>
     </div>
   )
