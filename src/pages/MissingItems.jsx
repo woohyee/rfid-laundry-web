@@ -46,9 +46,50 @@ export default function MissingItems() {
   // 수동 리프레시용 (삭제/업데이트 후 호출)
   const refreshReports = useCallback(() => {}, [])
 
+  const shareUrl = `${window.location.origin}/view/${user.uid}`
+  const [copied, setCopied] = useState(false)
+  const [showQR, setShowQR] = useState(false)
+
+  function handleCopyLink() {
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
   return (
     <div className="space-y-4">
-      {/* 헤더 — 반응형 */}
+      {/* 공유 링크 */}
+      <div className="bg-blue-50 rounded-xl p-3 flex items-center gap-2">
+        <p className="text-xs text-blue-700 flex-1 min-w-0 truncate">
+          Factory link: <span className="font-mono">{shareUrl}</span>
+        </p>
+        <button
+          onClick={handleCopyLink}
+          className="text-xs font-bold text-blue-700 px-2 py-1 rounded bg-blue-100 flex-shrink-0"
+        >
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+        <button
+          onClick={() => setShowQR(!showQR)}
+          className="text-xs font-bold text-blue-700 px-2 py-1 rounded bg-blue-100 flex-shrink-0"
+        >
+          QR
+        </button>
+      </div>
+
+      {/* QR 코드 */}
+      {showQR && (
+        <div className="flex justify-center py-2">
+          <img
+            src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareUrl)}`}
+            alt="QR Code"
+            className="w-48 h-48 rounded-lg border border-zinc-200"
+          />
+        </div>
+      )}
+
+      {/* 헤더 */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-zinc-500">{reports.length} reports</p>
         <button
