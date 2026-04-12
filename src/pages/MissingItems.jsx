@@ -86,13 +86,21 @@ export default function MissingItems() {
             alt="QR Code"
             className="w-48 h-48 rounded-lg border border-zinc-200"
           />
-          <a
-            href={`https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&format=png&data=${encodeURIComponent(shareUrl)}`}
-            download="rfid-laundry-qr.png"
+          <button
+            onClick={async () => {
+              const res = await fetch(`https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&format=png&data=${encodeURIComponent(shareUrl)}`)
+              const blob = await res.blob()
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = 'rfid-laundry-qr.png'
+              a.click()
+              URL.revokeObjectURL(url)
+            }}
             className="text-xs font-bold text-blue-700 px-3 py-1.5 rounded-lg bg-blue-100"
           >
             Download QR
-          </a>
+          </button>
         </div>
       )}
 
