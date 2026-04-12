@@ -30,24 +30,30 @@ export default function FactoryPublicView() {
   const [depotName, setDepotName] = useState('')
   const myName = 'Factory'
 
-  // 익명 로그인 (Firestore 읽기/쓰기 권한 확보)
+  const [ready, setReady] = useState(false)
+
+  // 익명 로그인 완료 후 ready
   useEffect(() => {
-    if (!auth.currentUser) {
-      signInAnonymously(auth).catch(() => {})
+    const init = async () => {
+      if (!auth.currentUser) {
+        await signInAnonymously(auth).catch(() => {})
+      }
+      setReady(true)
     }
+    init()
   }, [])
 
-  // 디포 이름 조회
+  // 디포 이름 조회 — 로그인 후
   useEffect(() => {
-    if (!depotUid) return
+    if (!ready || !depotUid) return
     getDoc(doc(db, 'shops', depotUid)).then(snap => {
       if (snap.exists()) setDepotName(snap.data().name)
     }).catch(() => {})
-  }, [depotUid])
+  }, [ready, depotUid])
 
-  // 실시간 리스너
+  // 실시간 리스너 — 로그인 후
   useEffect(() => {
-    if (!depotUid) return
+    if (!ready || !depotUid) return
     const q = query(
       collection(db, 'lostReports'),
       where('depotUid', '==', depotUid),
@@ -58,7 +64,7 @@ export default function FactoryPublicView() {
       setLoading(false)
     })
     return unsubscribe
-  }, [depotUid])
+  }, [ready, depotUid])
 
   function handleClose() {
     window.close()
