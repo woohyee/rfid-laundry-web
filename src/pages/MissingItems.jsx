@@ -166,11 +166,10 @@ function NewReportForm({ uid, shopName, onClose, onAdded }) {
         comments: [],
       })
 
-      // 사진 업로드
+      // 사진 업로드 (Cloudinary)
       const photoUrls = []
       for (let i = 0; i < photos.length; i++) {
-        const path = `lostReports/${reportRef.id}/photo_${i}.jpg`
-        const url = await uploadPhoto(path, photos[i])
+        const url = await uploadPhoto(`lostReports/${reportRef.id}`, photos[i])
         photoUrls.push(url)
       }
       await updateDoc(doc(db, 'lostReports', reportRef.id), { photoUrls })

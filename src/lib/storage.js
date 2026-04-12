@@ -1,23 +1,28 @@
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
-import { storage } from '@/lib/firebase'
+const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
+const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
 
 /**
- * 사진 업로드 후 다운로드 URL 반환
- * @param {string} path — Storage 경로 (예: 'lostReports/{reportId}/photo1.jpg')
+ * Cloudinary unsigned upload로 사진 업로드
+ * @param {string} folder — Cloudinary 폴더 경로 (예: 'lostReports/abc123')
  * @param {File|Blob} file — 업로드할 파일
- * @returns {Promise<string>} — 다운로드 URL
+ * @returns {Promise<string>} — 이미지 URL (secure_url)
  */
-export async function uploadPhoto(path, file) {
-  const storageRef = ref(storage, path)
-  await uploadBytes(storageRef, file)
-  return getDownloadURL(storageRef)
-}
+export async function uploadPhoto(folder, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('upload_preset', UPLOAD_PRESET)
+  formData.append('folder', folder)
 
-/**
- * Storage 파일 삭제
- * @param {string} path — Storage 경로
- */
-export async function deletePhoto(path) {
-  const storageRef = ref(storage, path)
-  await deleteObject(storageRef)
+  const res = await fetch(
+    `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+    { method: 'POST', body: formData }
+  )
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error?.message || `Upload failed (${res.status})`)
+  }
+
+  const data = await res.json()
+  return data.secure_url
 }
