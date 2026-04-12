@@ -17,9 +17,15 @@ function AppRoutes() {
   }
 
   if (!user) {
+    // PWA 홈화면에서 열면 / 로 접속됨 → 저장된 공장 뷰로 리다이렉트
+    const savedFactoryUid = localStorage.getItem('factoryViewUid')
     return (
       <Routes>
         <Route path="/view/:depotUid" element={<FactoryPublicView />} />
+        {savedFactoryUid
+          ? <Route path="/" element={<Navigate to={`/view/${savedFactoryUid}`} />} />
+          : null
+        }
         <Route path="*" element={<Login />} />
       </Routes>
     )

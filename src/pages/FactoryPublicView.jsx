@@ -31,6 +31,11 @@ export default function FactoryPublicView() {
   const [ready, setReady] = useState(false)
   const myName = 'Factory'
 
+  // depotUid 저장 (PWA 홈화면 열기 시 리다이렉트용)
+  useEffect(() => {
+    if (depotUid) localStorage.setItem('factoryViewUid', depotUid)
+  }, [depotUid])
+
   // 익명 로그인 완료 후 ready
   useEffect(() => {
     const init = async () => {
