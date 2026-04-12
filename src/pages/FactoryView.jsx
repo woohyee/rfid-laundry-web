@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
-  collection, query, getDocs, doc, updateDoc,
+  collection, query, onSnapshot, doc, updateDoc,
   orderBy, arrayUnion, Timestamp
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -26,18 +26,18 @@ export default function FactoryView() {
   const [reports, setReports] = useState([])
   const [loading, setLoading] = useState(true)
 
-  const fetchReports = useCallback(async () => {
-    setLoading(true)
+  // 실시간 리스너 — 디포 리포트 즉시 반영
+  useEffect(() => {
     const q = query(
       collection(db, 'lostReports'),
       orderBy('createdAt', 'desc')
     )
-    const snap = await getDocs(q)
-    setReports(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-    setLoading(false)
+    const unsubscribe = onSnapshot(q, (snap) => {
+      setReports(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      setLoading(false)
+    })
+    return unsubscribe
   }, [])
-
-  useEffect(() => { fetchReports() }, [fetchReports])
 
   const activeReports = reports.filter(r => r.status !== 'resolved')
   const resolvedReports = reports.filter(r => r.status === 'resolved')
@@ -64,7 +64,7 @@ export default function FactoryView() {
               report={report}
               factoryUid={user.uid}
               factoryName={shop?.name || 'Factory'}
-              onUpdate={fetchReports}
+              onUpdate={() => {}}
             />
           ))}
         </div>
@@ -82,7 +82,7 @@ export default function FactoryView() {
                 report={report}
                 factoryUid={user.uid}
                 factoryName={shop?.name || 'Factory'}
-                onUpdate={fetchReports}
+                onUpdate={() => {}}
               />
             ))}
           </div>

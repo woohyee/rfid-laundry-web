@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
-  collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc,
+  collection, query, where, onSnapshot, addDoc, doc, updateDoc, deleteDoc,
   serverTimestamp, orderBy
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -29,19 +29,22 @@ export default function MissingItems() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
 
-  const fetchReports = useCallback(async () => {
-    setLoading(true)
+  // 실시간 리스너 — 공장 코멘트 즉시 반영
+  useEffect(() => {
     const q = query(
       collection(db, 'lostReports'),
       where('depotUid', '==', user.uid),
       orderBy('createdAt', 'desc')
     )
-    const snap = await getDocs(q)
-    setReports(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-    setLoading(false)
+    const unsubscribe = onSnapshot(q, (snap) => {
+      setReports(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      setLoading(false)
+    })
+    return unsubscribe
   }, [user.uid])
 
-  useEffect(() => { fetchReports() }, [fetchReports])
+  // 수동 리프레시용 (삭제/업데이트 후 호출)
+  const refreshReports = useCallback(() => {}, [])
 
   return (
     <div className="space-y-4">
@@ -64,7 +67,7 @@ export default function MissingItems() {
       ) : (
         <div className="space-y-3">
           {reports.map(report => (
-            <ReportCard key={report.id} report={report} onUpdate={fetchReports} />
+            <ReportCard key={report.id} report={report} onUpdate={refreshReports} />
           ))}
         </div>
       )}
@@ -75,7 +78,7 @@ export default function MissingItems() {
           uid={user.uid}
           shopName={shop?.name || ''}
           onClose={() => setShowForm(false)}
-          onAdded={fetchReports}
+          onAdded={refreshReports}
         />
       )}
     </div>
