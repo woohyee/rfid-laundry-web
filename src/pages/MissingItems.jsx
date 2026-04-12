@@ -78,14 +78,21 @@ export default function MissingItems() {
         </button>
       </div>
 
-      {/* QR 코드 */}
+      {/* QR 코드 + 다운로드 */}
       {showQR && (
-        <div className="flex justify-center py-2">
+        <div className="flex flex-col items-center gap-2 py-2">
           <img
-            src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareUrl)}`}
+            src={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(shareUrl)}`}
             alt="QR Code"
             className="w-48 h-48 rounded-lg border border-zinc-200"
           />
+          <a
+            href={`https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&format=png&data=${encodeURIComponent(shareUrl)}`}
+            download="rfid-laundry-qr.png"
+            className="text-xs font-bold text-blue-700 px-3 py-1.5 rounded-lg bg-blue-100"
+          >
+            Download QR
+          </a>
         </div>
       )}
 
