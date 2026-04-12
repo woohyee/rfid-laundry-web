@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/context/AuthContext'
 import Login from '@/pages/Login'
-import Layout from '@/components/Layout'
+import DepotLayout from '@/components/DepotLayout'
+import FactoryLayout from '@/components/FactoryLayout'
 import Onboarding from '@/pages/Onboarding'
 
 function AppRoutes() {
@@ -32,9 +33,12 @@ function AppRoutes() {
     )
   }
 
+  // 역할별 레이아웃 분리
+  const LayoutComponent = shop.role === 'factory' ? FactoryLayout : DepotLayout
+
   return (
     <Routes>
-      <Route path="/" element={<Layout />} />
+      <Route path="/" element={<LayoutComponent />} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   )
