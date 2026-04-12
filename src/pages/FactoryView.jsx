@@ -139,23 +139,19 @@ function ReportCard({ report, factoryUid, factoryName, onUpdate }) {
         </div>
       )}
 
-      <div className="p-3">
-        {/* 상태 + 날짜 */}
-        <div className="flex items-center gap-2">
-          <span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${STATUS_COLORS[report.status] || 'bg-zinc-100 text-zinc-500'}`}>
+      <div className="p-3 space-y-2">
+        {/* 상태 라인: reported from {depot} · Today */}
+        <p className="text-xs text-zinc-500">
+          <span className={`inline-block px-1.5 py-0.5 rounded font-semibold mr-1 ${STATUS_COLORS[report.status] || 'bg-zinc-100 text-zinc-500'}`}>
             {report.status}
           </span>
-          <span className="text-[11px] text-zinc-400">{daysAgo(report.createdAt)}</span>
-        </div>
-
-        {/* 설명 */}
-        {report.description && (
-          <p className="text-sm text-zinc-700 mt-1.5">{report.description}</p>
-        )}
+          {report.description && <span className="text-zinc-700">{report.description} · </span>}
+          {daysAgo(report.createdAt)}
+        </p>
 
         {/* 코멘트 목록 */}
         {report.comments?.length > 0 && (
-          <div className="mt-2 space-y-1.5">
+          <div className="space-y-1.5">
             {report.comments.map((c, i) => (
               <div key={i} className="bg-blue-50 rounded-lg px-2.5 py-1.5">
                 <p className="text-sm text-zinc-700">{c.text}</p>
@@ -167,9 +163,9 @@ function ReportCard({ report, factoryUid, factoryName, onUpdate }) {
           </div>
         )}
 
-        {/* 코멘트 입력 */}
+        {/* 코멘트 입력 — 하나만, 카드 하단 */}
         {report.status !== 'resolved' && (
-          <div className="mt-2 flex gap-1.5">
+          <div className="flex gap-1.5">
             <input
               type="text"
               value={comment}
