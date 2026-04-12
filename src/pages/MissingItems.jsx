@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
-  collection, query, where, getDocs, addDoc, doc, updateDoc,
+  collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc,
   serverTimestamp, orderBy
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -82,8 +82,15 @@ export default function MissingItems() {
   )
 }
 
-// 리포트 카드 — 사진 + 상태 + 공장 코멘트
+// 리포트 카드 — 사진 + 상태 + 공장 코멘트 + 삭제
 function ReportCard({ report, onUpdate }) {
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  async function handleDelete() {
+    await deleteDoc(doc(db, 'lostReports', report.id))
+    onUpdate()
+  }
+
   return (
     <div className={`bg-white rounded-xl p-4 border border-zinc-200 ${report.status === 'resolved' ? 'opacity-60' : ''}`}>
       {/* 사진 */}
@@ -95,13 +102,28 @@ function ReportCard({ report, onUpdate }) {
         </div>
       )}
 
-      {/* 상태 + 날짜 */}
+      {/* 상태 + 날짜 + 삭제 */}
       <div className="flex items-center gap-2 mb-1">
         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[report.status] || 'bg-zinc-100 text-zinc-500'}`}>
           {report.status}
         </span>
         <span className="text-xs text-zinc-400">{daysAgo(report.createdAt)}</span>
+        <button
+          onClick={() => setConfirmDelete(true)}
+          className="ml-auto text-xs text-zinc-300 hover:text-red-500"
+        >
+          Delete
+        </button>
       </div>
+
+      {/* 삭제 확인 */}
+      {confirmDelete && (
+        <div className="flex items-center gap-2 mt-2 p-2 bg-red-50 rounded-lg">
+          <p className="text-xs text-red-600 flex-1">Delete this report?</p>
+          <button onClick={handleDelete} className="text-xs font-bold text-red-600 px-2 py-1">Yes</button>
+          <button onClick={() => setConfirmDelete(false)} className="text-xs text-zinc-500 px-2 py-1">No</button>
+        </div>
+      )}
 
       {/* 설명 */}
       {report.description && (
