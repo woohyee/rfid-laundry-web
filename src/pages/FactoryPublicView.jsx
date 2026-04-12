@@ -4,7 +4,8 @@ import {
   collection, query, where, onSnapshot, doc, getDoc, updateDoc,
   orderBy, arrayUnion, Timestamp
 } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { auth, db } from '@/lib/firebase'
+import { signInAnonymously } from 'firebase/auth'
 import logo from '@/assets/logo.png'
 
 const STATUS_COLORS = {
@@ -28,6 +29,13 @@ export default function FactoryPublicView() {
   const [loading, setLoading] = useState(true)
   const [depotName, setDepotName] = useState('')
   const myName = 'Factory'
+
+  // 익명 로그인 (Firestore 읽기/쓰기 권한 확보)
+  useEffect(() => {
+    if (!auth.currentUser) {
+      signInAnonymously(auth).catch(() => {})
+    }
+  }, [])
 
   // 디포 이름 조회
   useEffect(() => {
@@ -134,8 +142,9 @@ function ReportCard({ report, depotName, myName }) {
         })
       })
       setComment('')
-    } catch {
-      setError('Failed to add comment')
+    } catch (err) {
+      console.error('Comment error:', err)
+      setError(err.message || 'Failed to add comment')
     } finally {
       setSaving(false)
     }
