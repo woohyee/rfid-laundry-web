@@ -148,18 +148,6 @@ function ReportCard({ report, onUpdate }) {
         </div>
       )}
 
-      {/* Mark Resolved 버튼 */}
-      {report.status !== 'resolved' && report.comments?.length > 0 && (
-        <button
-          onClick={async () => {
-            await updateDoc(doc(db, 'lostReports', report.id), { status: 'resolved' })
-            onUpdate()
-          }}
-          className="mt-3 px-4 py-2 rounded-lg text-sm font-bold bg-green-500 text-white hover:bg-green-600"
-        >
-          Mark Resolved
-        </button>
-      )}
     </div>
   )
 }
