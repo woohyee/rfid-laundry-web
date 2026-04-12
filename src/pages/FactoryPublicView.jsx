@@ -146,7 +146,6 @@ export default function FactoryPublicView() {
 
 function ReportCard({ report, depotName, myName, onRequestName }) {
   const [comment, setComment] = useState('')
-  const [showReply, setShowReply] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [expandedImg, setExpandedImg] = useState(null)
@@ -166,7 +165,6 @@ function ReportCard({ report, depotName, myName, onRequestName }) {
         })
       })
       setComment('')
-      setShowReply(false)
     } catch {
       setError('Failed to add comment')
     } finally {
@@ -174,10 +172,6 @@ function ReportCard({ report, depotName, myName, onRequestName }) {
     }
   }
 
-  function handleReplyClick() {
-    if (!myName) { onRequestName(); return }
-    setShowReply(true)
-  }
 
   return (
     <div className="bg-white rounded-xl overflow-hidden border border-zinc-200">
@@ -226,35 +220,26 @@ function ReportCard({ report, depotName, myName, onRequestName }) {
           </div>
         )}
 
-        {/* Reply */}
+        {/* 코멘트 입력 — 항상 표시 */}
         {report.status !== 'resolved' && (
-          showReply ? (
-            <div className="flex gap-1.5">
-              <input
-                type="text"
-                value={comment}
-                onChange={e => setComment(e.target.value)}
-                placeholder="Reply..."
-                autoFocus
-                className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-zinc-200 text-sm focus:border-[#2563EB] focus:outline-none"
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && !saving) handleAddComment()
-                  if (e.key === 'Escape') { setShowReply(false); setComment('') }
-                }}
-              />
-              <button
-                onClick={handleAddComment}
-                disabled={saving || !comment.trim()}
-                className="px-3 py-1.5 rounded-lg bg-[#2563EB] text-white text-xs font-bold disabled:opacity-40 flex-shrink-0"
-              >
-                {saving ? '...' : 'Send'}
-              </button>
-            </div>
-          ) : (
-            <button onClick={handleReplyClick} className="text-xs text-[#2563EB] font-medium">
-              Reply
+          <div className="flex gap-1.5">
+            <input
+              type="text"
+              value={comment}
+              onChange={e => setComment(e.target.value)}
+              onFocus={() => { if (!myName) onRequestName() }}
+              placeholder="Reply..."
+              className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-zinc-200 text-sm focus:border-[#2563EB] focus:outline-none"
+              onKeyDown={e => { if (e.key === 'Enter' && !saving) handleAddComment() }}
+            />
+            <button
+              onClick={handleAddComment}
+              disabled={saving || !comment.trim()}
+              className="px-3 py-1.5 rounded-lg bg-[#2563EB] text-white text-xs font-bold disabled:opacity-40 flex-shrink-0"
+            >
+              {saving ? '...' : 'Send'}
             </button>
-          )
+          </div>
         )}
         {error && <p className="text-red-500 text-[11px] mt-1">{error}</p>}
       </div>
