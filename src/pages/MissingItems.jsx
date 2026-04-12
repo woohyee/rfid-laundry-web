@@ -177,21 +177,22 @@ function NewReportForm({ uid, shopName, onClose, onAdded }) {
 
       onAdded()
       onClose()
-    } catch {
-      setError('Failed to submit report')
+    } catch (err) {
+      console.error('Report submit error:', err)
+      setError(err.message || 'Failed to submit report')
       setSaving(false)
     }
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <h3 className="text-lg font-bold mb-4">Report Missing Item</h3>
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50">
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 w-full sm:max-w-md max-h-[85vh] overflow-y-auto">
+        <h3 className="text-base font-bold mb-3">Report Missing Item</h3>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           {/* 사진 (필수) */}
           <div>
-            <label className="block text-sm font-semibold mb-2">
+            <label className="block text-xs font-semibold mb-1">
               Photos <span className="text-red-500">*</span>
             </label>
             <PhotoUpload photos={photos} onChange={setPhotos} />
@@ -199,32 +200,32 @@ function NewReportForm({ uid, shopName, onClose, onAdded }) {
 
           {/* 설명 (선택) */}
           <div>
-            <label className="block text-sm font-semibold mb-2">
+            <label className="block text-xs font-semibold mb-1">
               Description <span className="text-zinc-400">(optional)</span>
             </label>
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
               placeholder="Describe the missing item"
-              rows={3}
-              className="w-full px-3 py-2 rounded-lg border border-zinc-300 focus:border-[#E07B0F] focus:outline-none"
+              rows={2}
+              className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 focus:border-[#E07B0F] focus:outline-none"
             />
           </div>
 
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && <p className="text-red-500 text-xs">{error}</p>}
 
           <div className="flex gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 rounded-xl border border-zinc-300 font-medium"
+              className="flex-1 py-2.5 rounded-xl border border-zinc-300 text-sm font-medium"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 py-3 rounded-xl bg-[#E07B0F] text-white font-bold disabled:opacity-50"
+              className="flex-1 py-2.5 rounded-xl bg-[#E07B0F] text-white text-sm font-bold disabled:opacity-50"
             >
               {saving ? 'Submitting...' : 'Report'}
             </button>
