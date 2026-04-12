@@ -227,7 +227,6 @@ function ReportCard({ report, depotName, myName, onRequestName }) {
               type="text"
               value={comment}
               onChange={e => setComment(e.target.value)}
-              onFocus={() => { if (!myName) onRequestName() }}
               placeholder="Reply..."
               className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-zinc-200 text-sm focus:border-[#2563EB] focus:outline-none"
               onKeyDown={e => { if (e.key === 'Enter' && !saving) handleAddComment() }}
