@@ -96,6 +96,7 @@ function ReportCard({ report, factoryUid, factoryName, onUpdate }) {
   const [comment, setComment] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [fullscreenImg, setFullscreenImg] = useState(null)
 
   async function handleAddComment() {
     if (!comment.trim()) return
@@ -121,12 +122,28 @@ function ReportCard({ report, factoryUid, factoryName, onUpdate }) {
 
   return (
     <div className="bg-white rounded-xl overflow-hidden border border-zinc-200">
-      {/* 사진 — 전체 너비 */}
+      {/* 사진 — 탭하면 전체화면 */}
       {report.photoUrls?.length > 0 && (
         <div className="flex gap-1 overflow-x-auto bg-zinc-50">
           {report.photoUrls.map((url, i) => (
-            <img key={i} src={url} alt="" className="w-full max-w-[200px] h-40 object-cover flex-shrink-0" />
+            <img
+              key={i}
+              src={url}
+              alt=""
+              className="w-full max-w-[200px] h-40 object-cover flex-shrink-0 cursor-pointer active:opacity-80"
+              onClick={() => setFullscreenImg(url)}
+            />
           ))}
+        </div>
+      )}
+
+      {/* 전체화면 오버레이 */}
+      {fullscreenImg && (
+        <div
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          onClick={() => setFullscreenImg(null)}
+        >
+          <img src={fullscreenImg} alt="" className="max-w-full max-h-full object-contain rounded-lg" />
         </div>
       )}
 
