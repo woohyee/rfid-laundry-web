@@ -14,6 +14,7 @@ export default function Onboarding({ onBack }) {
 
   // 계정 정보
   const [email, setEmail] = useState('')
+  const [factoryId, setFactoryId] = useState('')
   const [password, setPassword] = useState('')
 
   // 프로필
@@ -32,7 +33,8 @@ export default function Onboarding({ onBack }) {
   // Auth 계정 생성 + shop 문서 생성
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!email.trim()) return setError('Email is required')
+    if (role === 'factory' && !factoryId.trim()) return setError('Factory ID is required')
+    if (role === 'depot' && !email.trim()) return setError('Email is required')
     if (password.length < 6) return setError('Password must be at least 6 characters')
     if (!name.trim()) return setError('Business name is required')
     if (!phone.trim()) return setError('Phone number is required')
@@ -42,7 +44,10 @@ export default function Onboarding({ onBack }) {
     setRegistering(true) // onAuthStateChanged가 shop 조회를 건너뛰게 함
     try {
       // 1. Firebase Auth 계정 생성
-      const cred = await createUserWithEmailAndPassword(auth, email.trim(), password)
+      const loginEmail = role === 'factory'
+        ? `${factoryId.trim().toLowerCase()}@factory.rfidlaundry.app`
+        : email.trim()
+      const cred = await createUserWithEmailAndPassword(auth, loginEmail, password)
       const uid = cred.user.uid
 
       // 2. shop 문서 생성
@@ -61,7 +66,7 @@ export default function Onboarding({ onBack }) {
       setShop(shopData)
     } catch (err) {
       setRegistering(false)
-      if (err.code === 'auth/email-already-in-use') setError('Email already in use.')
+      if (err.code === 'auth/email-already-in-use') setError(role === 'factory' ? 'This Factory ID is already taken.' : 'Email already in use.')
       else if (err.code === 'auth/weak-password') setError('Password must be at least 6 characters.')
       else setError('Registration failed. Please try again.')
       setSaving(false)
@@ -125,20 +130,37 @@ export default function Onboarding({ onBack }) {
               <p className="text-zinc-500 mb-6">Fill in your business details.</p>
 
               <form onSubmit={handleSubmit} className="space-y-5">
-                {/* 이메일 */}
-                <div>
-                  <label className="block text-sm font-semibold mb-2">
-                    Email <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="shop@example.com"
-                    autoFocus
-                    className="w-full px-4 py-3 text-lg rounded-xl border-2 border-zinc-300 focus:border-[#E07B0F] focus:outline-none"
-                  />
-                </div>
+                {/* 이메일 또는 Factory ID */}
+                {role === 'factory' ? (
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">
+                      Factory ID <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={factoryId}
+                      onChange={e => setFactoryId(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
+                      placeholder="e.g. tophat"
+                      autoFocus
+                      className="w-full px-4 py-3 text-lg rounded-xl border-2 border-zinc-300 focus:border-[#2563EB] focus:outline-none"
+                    />
+                    <p className="text-xs text-zinc-400 mt-1">Letters, numbers, - and _ only</p>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">
+                      Email <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder="shop@example.com"
+                      autoFocus
+                      className="w-full px-4 py-3 text-lg rounded-xl border-2 border-zinc-300 focus:border-[#E07B0F] focus:outline-none"
+                    />
+                  </div>
+                )}
 
                 {/* 비밀번호 */}
                 <div>
