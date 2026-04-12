@@ -42,14 +42,14 @@ export default function DepotLayout() {
       </header>
 
       {/* 탭 + Sign Out */}
-      <nav className="px-6 sm:px-10" style={{ background: '#18181B', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        <div className="flex items-center gap-4">
-          <div className="flex gap-0">
+      <nav className="px-2 sm:px-10" style={{ background: '#18181B', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex gap-0 overflow-x-auto flex-1 min-w-0">
             {TABS.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-3 text-2xl font-bold rounded-t-lg transition-colors ${
+                className={`px-3 sm:px-6 py-2 sm:py-3 text-sm sm:text-2xl font-bold rounded-t-lg transition-colors whitespace-nowrap flex-shrink-0 ${
                   activeTab === tab.id
                     ? 'text-white'
                     : 'text-white/55 hover:text-white/85 hover:bg-white/10'
@@ -62,7 +62,7 @@ export default function DepotLayout() {
           </div>
           <button
             onClick={() => signOut(auth)}
-            className="text-lg font-bold px-4 py-2 rounded-lg transition-colors border border-red-500 text-red-400 hover:bg-red-500 hover:text-white"
+            className="text-xs sm:text-lg font-bold px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors border border-red-500 text-red-400 hover:bg-red-500 hover:text-white flex-shrink-0"
           >
             Sign Out
           </button>
