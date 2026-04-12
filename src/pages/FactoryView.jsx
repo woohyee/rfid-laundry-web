@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import {
-  collection, query, onSnapshot, doc, updateDoc,
+  collection, query, onSnapshot, doc, getDoc, updateDoc,
   orderBy, arrayUnion, Timestamp
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -25,16 +25,28 @@ export default function FactoryView() {
   const { user, shop } = useAuth()
   const [reports, setReports] = useState([])
   const [loading, setLoading] = useState(true)
+  const [depotNames, setDepotNames] = useState({})
 
-  // 실시간 리스너 — 디포 리포트 즉시 반영
+  // 실시간 리스너
   useEffect(() => {
     const q = query(
       collection(db, 'lostReports'),
       orderBy('createdAt', 'desc')
     )
     const unsubscribe = onSnapshot(q, (snap) => {
-      setReports(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      setReports(list)
       setLoading(false)
+
+      // 디포 이름 1회 조회 (캐시)
+      const unknownUids = [...new Set(list.map(r => r.depotUid).filter(uid => uid && !depotNames[uid]))]
+      unknownUids.forEach(uid => {
+        getDoc(doc(db, 'shops', uid)).then(snap => {
+          if (snap.exists()) {
+            setDepotNames(prev => ({ ...prev, [uid]: snap.data().name }))
+          }
+        }).catch(() => {})
+      })
     })
     return unsubscribe
   }, [])
@@ -44,7 +56,6 @@ export default function FactoryView() {
 
   return (
     <div className="space-y-3">
-      {/* 헤더 */}
       <div className="flex items-baseline justify-between">
         <h2 className="text-base font-bold text-zinc-800">Missing Items</h2>
         <span className="text-xs text-zinc-400">{activeReports.length} active</span>
@@ -62,9 +73,9 @@ export default function FactoryView() {
             <ReportCard
               key={report.id}
               report={report}
+              depotName={depotNames[report.depotUid] || ''}
               factoryUid={user.uid}
               factoryName={shop?.name || 'Factory'}
-              onUpdate={() => {}}
             />
           ))}
         </div>
@@ -80,9 +91,9 @@ export default function FactoryView() {
               <ReportCard
                 key={report.id}
                 report={report}
+                depotName={depotNames[report.depotUid] || ''}
                 factoryUid={user.uid}
                 factoryName={shop?.name || 'Factory'}
-                onUpdate={() => {}}
               />
             ))}
           </div>
@@ -92,8 +103,9 @@ export default function FactoryView() {
   )
 }
 
-function ReportCard({ report, factoryUid, factoryName, onUpdate }) {
+function ReportCard({ report, depotName, factoryUid, factoryName }) {
   const [comment, setComment] = useState('')
+  const [showReply, setShowReply] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [expandedImg, setExpandedImg] = useState(null)
@@ -112,7 +124,7 @@ function ReportCard({ report, factoryUid, factoryName, onUpdate }) {
         })
       })
       setComment('')
-      onUpdate()
+      setShowReply(false)
     } catch {
       setError('Failed to add comment')
     } finally {
@@ -140,14 +152,19 @@ function ReportCard({ report, factoryUid, factoryName, onUpdate }) {
       )}
 
       <div className="p-3 space-y-2">
-        {/* 상태 라인: reported from {depot} · Today */}
-        <p className="text-xs text-zinc-500">
-          <span className={`inline-block px-1.5 py-0.5 rounded font-semibold mr-1 ${STATUS_COLORS[report.status] || 'bg-zinc-100 text-zinc-500'}`}>
-            {report.status}
-          </span>
-          {report.description && <span className="text-zinc-700">{report.description} · </span>}
-          {daysAgo(report.createdAt)}
-        </p>
+        {/* 상태 + 세탁소 이름 + 날짜 */}
+        <div>
+          <p className="text-xs text-zinc-500">
+            <span className={`inline-block px-1.5 py-0.5 rounded font-semibold mr-1 ${STATUS_COLORS[report.status] || 'bg-zinc-100 text-zinc-500'}`}>
+              {report.status}
+            </span>
+            {depotName && <span>from <span className="font-medium text-zinc-700">{depotName}</span> · </span>}
+            {daysAgo(report.createdAt)}
+          </p>
+          {report.description && (
+            <p className="text-sm text-zinc-700 mt-1">{report.description}</p>
+          )}
+        </div>
 
         {/* 코멘트 목록 */}
         {report.comments?.length > 0 && (
@@ -163,25 +180,38 @@ function ReportCard({ report, factoryUid, factoryName, onUpdate }) {
           </div>
         )}
 
-        {/* 코멘트 입력 — 하나만, 카드 하단 */}
+        {/* Reply 버튼 또는 입력창 */}
         {report.status !== 'resolved' && (
-          <div className="flex gap-1.5">
-            <input
-              type="text"
-              value={comment}
-              onChange={e => setComment(e.target.value)}
-              placeholder="Reply..."
-              className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-zinc-200 text-sm focus:border-[#2563EB] focus:outline-none"
-              onKeyDown={e => { if (e.key === 'Enter' && !saving) handleAddComment() }}
-            />
+          showReply ? (
+            <div className="flex gap-1.5">
+              <input
+                type="text"
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+                placeholder="Reply..."
+                autoFocus
+                className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-zinc-200 text-sm focus:border-[#2563EB] focus:outline-none"
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !saving) handleAddComment()
+                  if (e.key === 'Escape') { setShowReply(false); setComment('') }
+                }}
+              />
+              <button
+                onClick={handleAddComment}
+                disabled={saving || !comment.trim()}
+                className="px-3 py-1.5 rounded-lg bg-[#2563EB] text-white text-xs font-bold disabled:opacity-40 flex-shrink-0"
+              >
+                {saving ? '...' : 'Send'}
+              </button>
+            </div>
+          ) : (
             <button
-              onClick={handleAddComment}
-              disabled={saving || !comment.trim()}
-              className="px-3 py-1.5 rounded-lg bg-[#2563EB] text-white text-xs font-bold disabled:opacity-40 flex-shrink-0"
+              onClick={() => setShowReply(true)}
+              className="text-xs text-[#2563EB] font-medium"
             >
-              {saving ? '...' : 'Send'}
+              Reply
             </button>
-          </div>
+          )
         )}
         {error && <p className="text-red-500 text-[11px] mt-1">{error}</p>}
       </div>
